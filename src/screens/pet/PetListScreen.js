@@ -1,10 +1,28 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
+import {
+  View, Text, FlatList, TouchableOpacity, StyleSheet,
+  ActivityIndicator, Alert, StatusBar, ScrollView, Image,
+} from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { getPets, deletePet } from '../../api/petApi';
 import { AuthContext } from '../../context/AuthContext';
 
+const C = {
+  primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
+  primaryFixedDim: '#78d8b8', secondary: '#8e4e14', secondaryContainer: '#ffab69',
+  secondaryFixed: '#ffdcc4', surface: '#faf9f8', surfaceHigh: '#e9e8e7',
+  surfaceLow: '#f4f3f2', surfaceLowest: '#ffffff', onSurface: '#1a1c1c',
+  onSurfaceVariant: '#3e4944', outline: '#6e7a74', outlineVariant: '#bdc9c3',
+  emeraldDark: '#052E25',
+};
+
+const PET_COLORS = ['#148367', '#8e4e14', '#9f3a21', '#006850', '#783d01', '#1e7a6e'];
+const SPECIES_ICONS = { Dog: 'pets', Cat: 'pets', Bird: 'flutter-dash', Fish: 'set-meal', default: 'pets' };
+
 const PetListScreen = () => {
+  const insets = useSafeAreaInsets();
   const [pets, setPets] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
@@ -16,325 +34,245 @@ const PetListScreen = () => {
       setLoading(true);
       const data = await getPets();
       setPets(data);
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Failed to fetch pets');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isFocused) {
-      fetchPets();
-    }
-  }, [isFocused]);
+  useEffect(() => { if (isFocused) fetchPets(); }, [isFocused]);
 
-  const handleDelete = async (id) => {
-    try {
-      await deletePet(id);
-      fetchPets();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to delete pet');
-    }
+  const handleDelete = (id) => {
+    Alert.alert('Remove Pet', 'Are you sure you want to remove this pet?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: async () => {
+          try { await deletePet(id); fetchPets(); }
+          catch { Alert.alert('Error', 'Failed to remove pet'); }
+        },
+      },
+    ]);
   };
 
-  const renderItem = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardInfo}>
-        <Text style={styles.name}>{item.name}</Text>
-        <Text style={styles.details}>{item.species} - {item.breed}</Text>
-        <Text style={styles.details}>Age: {item.age}</Text>
+  const renderPet = ({ item, index }) => {
+    const color = PET_COLORS[index % PET_COLORS.length];
+    const icon = SPECIES_ICONS[item.species] || SPECIES_ICONS.default;
+    return (
+      <View style={[styles.petCard, { borderLeftColor: color }]}>
+        <View style={[styles.petAvatarBox, { backgroundColor: color + '18' }]}>
+          <MaterialIcons name={icon} size={28} color={color} />
+        </View>
+        <View style={styles.petInfo}>
+          <Text style={styles.petName}>{item.name}</Text>
+          <Text style={styles.petDetails}>{item.species}{item.breed ? ` · ${item.breed}` : ''}</Text>
+          {item.age != null && <Text style={styles.petAge}>{item.age} yr{item.age !== 1 ? 's' : ''} old</Text>}
+        </View>
+        <View style={styles.petActions}>
+          <TouchableOpacity
+            style={styles.petActionBtn}
+            onPress={() => navigation.navigate('EditPet', { pet: item })}
+          >
+            <MaterialIcons name="edit" size={18} color={C.primary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.petActionBtn, styles.petDeleteBtn]}
+            onPress={() => handleDelete(item._id)}
+          >
+            <MaterialIcons name="delete-outline" size={18} color="#ba1a1a" />
+          </TouchableOpacity>
+        </View>
       </View>
-      <TouchableOpacity onPress={() => navigation.navigate('EditPet', { pet: item })} style={styles.editButton}>
-        <Text style={styles.editButtonText}>Edit</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => handleDelete(item._id)} style={styles.deleteButton}>
-        <Text style={styles.deleteButtonText}>Delete</Text>
-      </TouchableOpacity>
-    </View>
-  );
+    );
+  };
+
+  const bookingCards = [
+    { label: 'Vet', icon: 'medical-services', screen: 'VetBooking', color: C.primary },
+    { label: 'Grooming', icon: 'content-cut', screen: 'GroomingBooking', color: C.secondary },
+    { label: 'Boarding', icon: 'home', screen: 'BoardingBooking', color: '#1e7a6e' },
+  ];
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.emeraldDark} />
+
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>My Pets</Text>
-        <TouchableOpacity style={styles.logoutButton} onPress={logoutUser}>
+        <View>
+          <Text style={styles.headerGreeting}>Welcome back 🐾</Text>
+          <Text style={styles.headerTitle}>PawCare</Text>
+        </View>
+        <TouchableOpacity style={styles.logoutBtn} onPress={logoutUser}>
+          <MaterialIcons name="logout" size={18} color="rgba(236,253,245,0.85)" />
           <Text style={styles.logoutText}>Logout</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.dashLinks}>
-        <TouchableOpacity 
-          style={styles.dashButton}
-          onPress={() => navigation.navigate('MyBookings')}
-        >
-          <Text style={styles.dashButtonText}>📅 My Bookings</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 90, 110) }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Book a Service */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>BOOK A SERVICE</Text>
+          <View style={styles.bookingRow}>
+            {bookingCards.map(bc => (
+              <TouchableOpacity
+                key={bc.screen}
+                style={[styles.bookingCard, { borderTopColor: bc.color }]}
+                onPress={() => navigation.navigate(bc.screen)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.bookingIconBox, { backgroundColor: bc.color + '18' }]}>
+                  <MaterialIcons name={bc.icon} size={24} color={bc.color} />
+                </View>
+                <Text style={styles.bookingLabel}>{bc.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.statsRow}>
+          <View style={[styles.statCard, { backgroundColor: C.primary }]}>
+            <Text style={styles.statNum}>{pets.length}</Text>
+            <Text style={styles.statLabel}>Pets</Text>
+          </View>
+          <TouchableOpacity style={[styles.statCard, { backgroundColor: C.secondaryFixed }]}
+            onPress={() => navigation.navigate('MyBookings')}>
+            <MaterialIcons name="calendar-today" size={22} color={C.secondary} />
+            <Text style={[styles.statLabel, { color: C.secondary }]}>Bookings</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.statCard, { backgroundColor: C.surfaceHigh }]}
+            onPress={() => navigation.navigate('FeedbackWall')}>
+            <MaterialIcons name="star" size={22} color={C.outline} />
+            <Text style={[styles.statLabel, { color: C.outline }]}>Reviews</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* My Pets */}
+        <View style={styles.section}>
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionLabel}>MY PETS</Text>
+            <TouchableOpacity style={styles.addPetBtn} onPress={() => navigation.navigate('AddPet')}>
+              <MaterialIcons name="add" size={16} color={C.primary} />
+              <Text style={styles.addPetText}>Add Pet</Text>
+            </TouchableOpacity>
+          </View>
+          {loading ? (
+            <ActivityIndicator color={C.primary} style={{ marginTop: 30 }} />
+          ) : pets.length === 0 ? (
+            <View style={styles.emptyBox}>
+              <View style={styles.emptyIcon}>
+                <MaterialIcons name="pets" size={48} color={C.outlineVariant} />
+              </View>
+              <Text style={styles.emptyTitle}>No pets yet</Text>
+              <Text style={styles.emptyDesc}>Add your first pet to get started with PawCare.</Text>
+              <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('AddPet')}>
+                <Text style={styles.emptyBtnText}>Add Your First Pet</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            pets.map((item, index) => (
+              <View key={item._id}>{renderPet({ item, index })}</View>
+            ))
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Bottom Nav */}
+      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <TouchableOpacity style={styles.navItemActive}>
+          <MaterialIcons name="home" size={24} color="#fff" />
+          <Text style={styles.navTextActive}>Home</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.dashButton}
-          onPress={() => navigation.navigate('MyOrders')}
-        >
-          <Text style={styles.dashButtonText}>📦 My Orders</Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('MyBookings')}>
+          <MaterialIcons name="calendar-today" size={24} color={C.outline} />
+          <Text style={styles.navText}>Bookings</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.dashButton}
-          onPress={() => navigation.navigate('EditProfile')}
-        >
-          <Text style={styles.dashButtonText}>👤 Profile</Text>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProductList')}>
+          <MaterialIcons name="shopping-bag" size={24} color={C.outline} />
+          <Text style={styles.navText}>Shop</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('EditProfile')}>
+          <MaterialIcons name="person" size={24} color={C.outline} />
+          <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity 
-        style={styles.bookVetButton}
-        onPress={() => navigation.navigate('VetBooking')}
-      >
-        <Text style={styles.bookVetText}>📅 Book Vet</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={styles.bookGroomingButton}
-        onPress={() => navigation.navigate('GroomingBooking')}
-      >
-        <Text style={styles.bookGroomingText}>✂️ Book Grooming</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={styles.bookBoardingButton}
-        onPress={() => navigation.navigate('BoardingBooking')}
-      >
-        <Text style={styles.bookBoardingText}>🏠 Book Boarding</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={styles.shopButton}
-        onPress={() => navigation.navigate('ProductList')}
-      >
-        <Text style={styles.shopText}>🛒 Visit Pet Shop</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity 
-        style={styles.feedbackButton}
-        onPress={() => navigation.navigate('FeedbackWall')}
-      >
-        <Text style={styles.feedbackText}>⭐ Read Reviews & Feedback</Text>
-      </TouchableOpacity>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#3b82f6" style={styles.loader} />
-      ) : pets.length === 0 ? (
-        <Text style={styles.emptyText}>You haven't added any pets yet.</Text>
-      ) : (
-        <FlatList
-          data={pets}
-          keyExtractor={(item) => item._id.toString()}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-        />
-      )}
-
-      <TouchableOpacity 
-        style={styles.addButton} 
-        onPress={() => navigation.navigate('AddPet')}
-      >
-        <Text style={styles.addButtonText}>+ Add New Pet</Text>
-      </TouchableOpacity>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
+  safe: { flex: 1, backgroundColor: C.emeraldDark },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 16, backgroundColor: C.emeraldDark,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  headerGreeting: { fontSize: 12, color: 'rgba(120,216,184,0.8)', fontWeight: '600', letterSpacing: 0.5 },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  logoutText: { color: 'rgba(236,253,245,0.85)', fontSize: 13, fontWeight: '600' },
+  scroll: { flex: 1, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 24 },
+
+  section: { marginBottom: 24 },
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  sectionLabel: { fontSize: 11, fontWeight: '800', color: C.primary, letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 14 },
+  addPetBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: C.onPrimaryContainer, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  addPetText: { fontSize: 12, fontWeight: '700', color: C.primary },
+
+  bookingRow: { flexDirection: 'row', gap: 12 },
+  bookingCard: {
+    flex: 1, backgroundColor: C.surfaceLowest, borderRadius: 16, padding: 16,
+    alignItems: 'center', gap: 10, borderTopWidth: 3,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
   },
-  logoutButton: {
-    padding: 8,
-    backgroundColor: '#ef4444',
-    borderRadius: 5,
+  bookingIconBox: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  bookingLabel: { fontSize: 13, fontWeight: '700', color: C.onSurface },
+
+  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
+  statCard: {
+    flex: 1, borderRadius: 16, padding: 16, alignItems: 'center', justifyContent: 'center', gap: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 10, elevation: 2,
   },
-  logoutText: {
-    color: '#fff',
-    fontWeight: 'bold',
+  statNum: { fontSize: 28, fontWeight: '800', color: '#fff' },
+  statLabel: { fontSize: 11, fontWeight: '700', color: '#fff', letterSpacing: 0.5 },
+
+  petCard: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.surfaceLowest, borderRadius: 16,
+    padding: 16, marginBottom: 12, borderLeftWidth: 4,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2,
   },
-  list: {
-    padding: 15,
+  petAvatarBox: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  petInfo: { flex: 1 },
+  petName: { fontSize: 16, fontWeight: '800', color: C.onSurface, marginBottom: 2 },
+  petDetails: { fontSize: 13, color: C.onSurfaceVariant, fontWeight: '500' },
+  petAge: { fontSize: 12, color: C.outline, marginTop: 2 },
+  petActions: { flexDirection: 'row', gap: 8 },
+  petActionBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: C.surfaceLow, justifyContent: 'center', alignItems: 'center' },
+  petDeleteBtn: { backgroundColor: '#ffdad6' },
+
+  emptyBox: { alignItems: 'center', paddingVertical: 40, paddingHorizontal: 24 },
+  emptyIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: C.surfaceHigh, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: '700', color: C.onSurface, marginBottom: 8 },
+  emptyDesc: { fontSize: 14, color: C.outline, textAlign: 'center', lineHeight: 20, marginBottom: 24 },
+  emptyBtn: { backgroundColor: C.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 28, shadowColor: C.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5 },
+  emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
+  bottomNav: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.97)',
+    borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)',
+    shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.06, shadowRadius: 20, elevation: 20,
   },
-  card: {
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  cardInfo: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  details: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  deleteButton: {
-    backgroundColor: '#fee2e2',
-    padding: 8,
-    borderRadius: 5,
-  },
-  deleteButtonText: {
-    color: '#dc2626',
-    fontWeight: 'bold',
-  },
-  editButton: {
-    backgroundColor: '#dbeafe',
-    padding: 8,
-    borderRadius: 5,
-    marginRight: 8,
-  },
-  editButtonText: {
-    color: '#2563eb',
-    fontWeight: 'bold',
-  },
-  addButton: {
-    backgroundColor: '#3b82f6',
-    margin: 20,
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  bookVetButton: {
-    backgroundColor: '#10b981',
-    marginHorizontal: 20,
-    marginTop: 15,
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bookVetText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  bookGroomingButton: {
-    backgroundColor: '#f59e0b',
-    marginHorizontal: 20,
-    marginTop: 10,
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bookGroomingText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  bookBoardingButton: {
-    backgroundColor: '#0ea5e9',
-    marginHorizontal: 20,
-    marginTop: 10,
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  bookBoardingText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  shopButton: {
-    backgroundColor: '#8b5cf6', // A purple color to distinguish it
-    marginHorizontal: 20,
-    marginTop: 10,
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  shopText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  feedbackButton: {
-    backgroundColor: '#f43f5e', // A rose color
-    marginHorizontal: 20,
-    marginTop: 10,
-    height: 50,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  feedbackText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  dashLinks: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: 15,
-    justifyContent: 'space-between',
-  },
-  dashButton: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingVertical: 12,
-    marginHorizontal: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 1,
-    elevation: 1,
-  },
-  dashButtonText: {
-    color: '#374151',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  loader: {
-    marginTop: 50,
-  },
-  emptyText: {
-    textAlign: 'center',
-    marginTop: 50,
-    color: '#6b7280',
-    fontSize: 16,
-  }
+  navItem: { alignItems: 'center', paddingHorizontal: 16, paddingVertical: 4 },
+  navItemActive: { alignItems: 'center', backgroundColor: C.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, marginBottom: 2 },
+  navText: { fontSize: 10, fontWeight: '600', color: C.outline, letterSpacing: 0.5, marginTop: 3 },
+  navTextActive: { fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 0.5, marginTop: 3 },
 });
 
 export default PetListScreen;
