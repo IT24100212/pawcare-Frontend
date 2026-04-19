@@ -8,235 +8,209 @@ import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-// Static paw print positions scattered in the orange hero zone
-const PAW_POSITIONS = [
-  { x: 18,         y: 40,          size: 52, opacity: 0.18, delay: 0    },
-  { x: width-80,   y: 30,          size: 44, opacity: 0.15, delay: 300  },
-  { x: 46,         y: height*0.26, size: 60, opacity: 0.13, delay: 600  },
-  { x: width-100,  y: height*0.22, size: 50, opacity: 0.16, delay: 150  },
-  { x: width*0.4,  y: 20,          size: 36, opacity: 0.12, delay: 450  },
-  { x: width-60,   y: height*0.38, size: 40, opacity: 0.14, delay: 750  },
-  { x: 10,         y: height*0.38, size: 48, opacity: 0.11, delay: 900  },
-];
-
-const AnimatedPaw = ({ x, y, size, opacity, delay }) => {
-  const anim = useRef(new Animated.Value(0)).current;
+/* ───── animated floating paw ───── */
+const FloatingPaw = ({ x, y, size, baseOpacity, delay }) => {
+  const float = useRef(new Animated.Value(0)).current;
+  const fade  = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const t = setTimeout(() => {
+      Animated.timing(fade, { toValue: 1, duration: 500, useNativeDriver: true }).start();
       Animated.loop(
         Animated.sequence([
-          Animated.timing(anim, {
-            toValue: 1, duration: 2800 + delay * 0.3,
-            easing: Easing.inOut(Easing.sin), useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0, duration: 2800 + delay * 0.3,
-            easing: Easing.inOut(Easing.sin), useNativeDriver: true,
-          }),
+          Animated.timing(float, { toValue: 1, duration: 2600 + delay, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(float, { toValue: 0, duration: 2600 + delay, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ])
       ).start();
     }, delay);
     return () => clearTimeout(t);
   }, []);
 
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
-  const opacityAnim = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [opacity, opacity * 1.5, opacity] });
+  const ty = float.interpolate({ inputRange: [0, 1], outputRange: [0, -14] });
+  const op = float.interpolate({ inputRange: [0, 0.5, 1], outputRange: [baseOpacity, baseOpacity * 1.6, baseOpacity] });
 
   return (
-    <Animated.Text
-      style={{
-        position: 'absolute', left: x, top: y,
-        fontSize: size, opacity: opacityAnim,
-        transform: [{ translateY }],
-      }}
-    >
-      🐾
-    </Animated.Text>
+    <Animated.View style={{ position: 'absolute', left: x, top: y, opacity: Animated.multiply(fade, op), transform: [{ translateY: ty }] }}>
+      <Ionicons name="paw" size={size} color="#fff" />
+    </Animated.View>
   );
 };
 
+/* ───── main screen ───── */
 const WelcomeScreen = () => {
   const navigation = useNavigation();
 
-  // Cat image — gentle float
-  const catFloat = useRef(new Animated.Value(0)).current;
-  // Text slide up
-  const textY    = useRef(new Animated.Value(32)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  // Sub text
-  const subY     = useRef(new Animated.Value(24)).current;
-  const subOpacity = useRef(new Animated.Value(0)).current;
-  // Button breath
-  const btnScale = useRef(new Animated.Value(0.95)).current;
+  // cat float
+  const catY = useRef(new Animated.Value(0)).current;
+  // title
+  const titleY = useRef(new Animated.Value(30)).current;
+  const titleOp = useRef(new Animated.Value(0)).current;
+  // sub
+  const subY = useRef(new Animated.Value(24)).current;
+  const subOp = useRef(new Animated.Value(0)).current;
+  // dots
+  const dotsOp = useRef(new Animated.Value(0)).current;
+  // button
+  const btnScale = useRef(new Animated.Value(0.92)).current;
+  const btnOp = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Cat float loop
+    // cat bob
     Animated.loop(
       Animated.sequence([
-        Animated.timing(catFloat, {
-          toValue: -12, duration: 2400,
-          easing: Easing.inOut(Easing.sin), useNativeDriver: true,
-        }),
-        Animated.timing(catFloat, {
-          toValue: 0, duration: 2400,
-          easing: Easing.inOut(Easing.sin), useNativeDriver: true,
-        }),
+        Animated.timing(catY, { toValue: -10, duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(catY, { toValue: 0,   duration: 2200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ])
     ).start();
 
-    // Text entrance chain
+    // entrance stagger
     Animated.sequence([
-      Animated.delay(250),
+      Animated.delay(200),
+      Animated.timing(dotsOp, { toValue: 1, duration: 400, useNativeDriver: true }),
       Animated.parallel([
-        Animated.timing(textOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
-        Animated.timing(textY,        { toValue: 0, duration: 550, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(titleOp, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(titleY,  { toValue: 0, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
-      Animated.delay(100),
+      Animated.delay(80),
       Animated.parallel([
-        Animated.timing(subOpacity, { toValue: 1, duration: 450, useNativeDriver: true }),
-        Animated.timing(subY,       { toValue: 0, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(subOp, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(subY,  { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      ]),
+      Animated.delay(80),
+      Animated.parallel([
+        Animated.timing(btnOp,    { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(btnScale, { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
       ]),
     ]).start();
 
-    // Button breathe
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(btnScale, { toValue: 1,    duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(btnScale, { toValue: 0.95, duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])
-    ).start();
+    // button breathe
+    setTimeout(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(btnScale, { toValue: 1.04, duration: 1000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(btnScale, { toValue: 1,    duration: 1000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        ])
+      ).start();
+    }, 1800);
   }, []);
 
   return (
     <View style={styles.container}>
 
-      {/* ── ORANGE HERO ── */}
-      <View style={styles.topSection}>
+      {/* ─── ORANGE TOP ─── */}
+      <View style={styles.top}>
+        {/* Floating paws */}
+        <FloatingPaw x={16}         y={38}          size={48} baseOpacity={0.2}  delay={0}   />
+        <FloatingPaw x={width-72}   y={28}          size={40} baseOpacity={0.18} delay={300} />
+        <FloatingPaw x={40}         y={height*0.28} size={56} baseOpacity={0.14} delay={600} />
+        <FloatingPaw x={width-90}   y={height*0.24} size={44} baseOpacity={0.16} delay={150} />
+        <FloatingPaw x={width*0.42} y={16}          size={32} baseOpacity={0.13} delay={450} />
+        <FloatingPaw x={width-55}   y={height*0.4}  size={36} baseOpacity={0.15} delay={850} />
+        <FloatingPaw x={12}         y={height*0.42} size={42} baseOpacity={0.12} delay={700} />
 
-        {/* Floating paw prints */}
-        {PAW_POSITIONS.map((p, i) => (
-          <AnimatedPaw key={i} {...p} />
-        ))}
-
-        {/* Cat image floats gently */}
+        {/* Hero cat — gently bobs up and down */}
         <Animated.Image
-          source={{ uri: 'https://lh3.googleusercontent.com/aida/ADBb0uhQHL8vUALmYSsEkSavVVUcqx26Qb5YOyjTYY3glimrz9eCxuut4QPaimOz2O5v2JE434jcioYizaYciQR--rzLD35nUFNgOaCOZTnfR5dkn5gkSIY5MHWOhwoLsv1OgEQ9C6l5C_vVvJs6yPVMDnmZcQZLku9kIGAHW8_ez2uWynpMYkpQjQ-0hp92VO8CdvCYRwBl3L0lYXrsZo3sn9j0iVkUYoSjjHRnKrW7KdK9yxKWpqtLzrS8VI5WPcZWe2DPL2NhXuXgsw' }}
-          style={[styles.heroImage, { transform: [{ translateY: catFloat }] }]}
-          resizeMode="cover"
+          source={require('../../../assets/images/hero_cat.png')}
+          style={[styles.catImage, { transform: [{ translateY: catY }] }]}
+          resizeMode="contain"
         />
       </View>
 
-      {/* ── WHITE BOTTOM ── */}
-      <View style={styles.bottomSection}>
+      {/* ─── WHITE BOTTOM ─── */}
+      <View style={styles.bottom}>
 
-        {/* Pagination dots */}
-        <View style={styles.dotsRow}>
+        {/* Dots */}
+        <Animated.View style={[styles.dotsRow, { opacity: dotsOp }]}>
           <View style={[styles.dot, styles.dotActive]} />
           <View style={[styles.dot, styles.dotInactive]} />
           <View style={[styles.dot, styles.dotInactive]} />
-        </View>
+        </Animated.View>
 
         {/* Title */}
-        <Animated.Text style={[styles.title, { opacity: textOpacity, transform: [{ translateY: textY }] }]}>
-          Start Your Journey as a Thoughtful Pet Parent
+        <Animated.Text style={[styles.title, { opacity: titleOp, transform: [{ translateY: titleY }] }]}>
+          Start Your Journey as a{'\n'}Thoughtful Pet Parent
         </Animated.Text>
 
         {/* Subtitle */}
-        <Animated.Text style={[styles.subtitle, { opacity: subOpacity, transform: [{ translateY: subY }] }]}>
-          Begin a meaningful journey of care, connection, and responsibility.
+        <Animated.Text style={[styles.subtitle, { opacity: subOp, transform: [{ translateY: subY }] }]}>
+          Begin a meaningful journey of care,{'\n'}connection, and responsibility.
         </Animated.Text>
 
-        {/* CTA Button */}
-        <Animated.View style={{ width: '100%', transform: [{ scale: btnScale }] }}>
+        <View style={{ flex: 1 }} />
+
+        {/* CTA */}
+        <Animated.View style={{ width: '100%', opacity: btnOp, transform: [{ scale: btnScale }] }}>
           <TouchableOpacity
             style={styles.button}
             onPress={() => navigation.navigate('Login')}
             activeOpacity={0.85}
           >
-            <Text style={styles.buttonText}>Get Started</Text>
-            <View style={styles.iconWrapper}>
+            <Text style={styles.btnText}>Get Started</Text>
+            <View style={styles.btnPaw}>
               <Ionicons name="paw" size={24} color="#f9b256" />
             </View>
           </TouchableOpacity>
         </Animated.View>
-
       </View>
     </View>
   );
 };
 
+/* ─────────── styles ─────────── */
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#ffffff' },
+  container: { flex: 1, backgroundColor: '#fff' },
 
-  topSection: {
+  /* orange hero */
+  top: {
     height: height * 0.57,
     backgroundColor: '#f6ab49',
-    width: '100%',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    overflow: 'hidden',
   },
-
-  heroImage: {
-    width: '100%',
-    height: '100%',
+  catImage: {
+    width: width * 0.92,
+    height: height * 0.5,
     position: 'absolute',
     bottom: 0,
   },
 
-  bottomSection: {
+  /* white section */
+  bottom: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    marginTop: -32,
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: -28,
     alignItems: 'center',
-    paddingHorizontal: 28,
+    paddingHorizontal: 30,
     paddingTop: 28,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
   },
 
-  dotsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginBottom: 24,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: '#f6ab49',
-  },
-  dotInactive: {
-    width: 8,
-    backgroundColor: '#fed7aa',
-  },
+  dotsRow: { flexDirection: 'row', gap: 6, marginBottom: 28 },
+  dot:     { height: 10, borderRadius: 5 },
+  dotActive:   { width: 24, backgroundColor: '#f6ab49' },
+  dotInactive: { width: 10, backgroundColor: '#fed7aa' },
 
   title: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#111827',
+    color: '#1f2937',
     textAlign: 'center',
-    lineHeight: 34,
+    lineHeight: 36,
     marginBottom: 14,
   },
-
   subtitle: {
     fontSize: 15,
     color: '#6b7280',
     textAlign: 'center',
-    lineHeight: 23,
-    marginBottom: 32,
-    paddingHorizontal: 8,
+    lineHeight: 24,
   },
 
   button: {
     flexDirection: 'row',
     backgroundColor: '#f9b256',
-    width: '100%',
     height: 64,
     borderRadius: 32,
     alignItems: 'center',
@@ -249,15 +223,10 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     elevation: 8,
   },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 0.3,
-  },
-  iconWrapper: {
+  btnText: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 0.3 },
+  btnPaw:  {
     width: 52, height: 52, borderRadius: 26,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
     alignItems: 'center', justifyContent: 'center',
   },
 });
