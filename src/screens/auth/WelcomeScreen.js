@@ -5,23 +5,35 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Path } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
 
-const TopWave = () => (
-  // We place this at the very bottom of the orange section, overlapping it
-  <Svg 
-    viewBox="0 0 1440 100" 
-    preserveAspectRatio="none" 
-    style={{ position: 'absolute', bottom: -1, width: width, height: 45, zIndex: 10 }}
-  >
-    <Path
-      fill="#ffffff"
-      d="M0,32L80,37.3C160,43,320,53,480,53.3C640,53,800,43,960,37.3C1120,32,1280,32,1360,32L1440,32L1440,100L1360,100C1280,100,1120,100,960,100C800,100,640,100,480,100C320,100,160,100,80,100L0,100Z"
-    />
-  </Svg>
-);
+// Creates a jagged "torn paper" edge using pure CSS rotated squares
+// so we don't need react-native-svg which can crash Expo Go.
+const TornEdge = () => {
+  const pieces = [];
+  const count = 30;
+  const pieceWidth = width / count;
+  for (let i = 0; i < count + 2; i++) {
+    const size = 15 + Math.random() * 12;
+    const yOffset = -size / 2 + Math.random() * 6;
+    pieces.push(
+      <View
+        key={i}
+        style={{
+          position: 'absolute',
+          left: (i - 1) * pieceWidth,
+          top: yOffset,
+          width: size,
+          height: size,
+          backgroundColor: '#fff',
+          transform: [{ rotate: `${Math.random() * 90}deg` }],
+        }}
+      />
+    );
+  }
+  return <View style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 10, zIndex: 10 }}>{pieces}</View>;
+};
 
 const FloatingPaw = ({ x, y, size, baseOpacity, delay }) => {
   const float = useRef(new Animated.Value(0)).current;
@@ -68,12 +80,11 @@ const WelcomeScreen = () => {
           style={styles.catImage}
           resizeMode="contain"
         />
-
-        <TopWave />
       </View>
 
       {/* ─── WHITE BOTTOM ─── */}
       <View style={styles.bottom}>
+        <TornEdge />
 
         <View style={styles.dotsRow}>
           <View style={[styles.dot, styles.dotActive]} />
@@ -130,9 +141,10 @@ const styles = StyleSheet.create({
   bottom: {
     flex: 1,
     backgroundColor: '#fff',
+    marginTop: 0,
     alignItems: 'center',
     paddingHorizontal: 28,
-    paddingTop: 8,
+    paddingTop: 40,
     paddingBottom: Platform.OS === 'ios' ? 44 : 32,
   },
 
