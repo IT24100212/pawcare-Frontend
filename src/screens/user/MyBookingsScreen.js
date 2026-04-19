@@ -55,11 +55,12 @@ const MyBookingsScreen = () => {
   useEffect(() => { if (isFocused) fetchBookings(); }, [isFocused]);
 
   const handleCancel = (booking) => {
-    if (booking.isInstantSlot) {
-      Alert.alert('Cannot Cancel', 'Instant slot bookings cannot be cancelled.');
+    // Only block if explicitly marked as instant slot
+    if (booking.isInstantSlot === true) {
+      Alert.alert('Cannot Cancel', 'Instant slot bookings cannot be cancelled as another patient may need urgent care.');
       return;
     }
-    Alert.alert('Cancel Booking', 'Are you sure?', [
+    Alert.alert('Cancel Booking', 'Are you sure you want to cancel this appointment?', [
       { text: 'No', style: 'cancel' },
       {
         text: 'Yes, Cancel', style: 'destructive',
@@ -68,7 +69,7 @@ const MyBookingsScreen = () => {
             const serviceMap = { Vet: 'vet', Grooming: 'grooming', Boarding: 'boarding' };
             const slug = serviceMap[booking.serviceType] || 'vet';
             await axiosInstance.delete(`/bookings/${slug}/${booking._id}`);
-            Alert.alert('Cancelled', 'Booking cancelled successfully.');
+            Alert.alert('✅ Cancelled', 'Booking cancelled successfully.');
             fetchBookings();
           } catch (e) {
             Alert.alert('Error', e?.response?.data?.message || 'Failed to cancel');
@@ -89,7 +90,10 @@ const MyBookingsScreen = () => {
     const date = item.appointmentDate
       ? new Date(item.appointmentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
       : 'N/A';
-    const canCancel = item.status === 'Pending' && !item.isInstantSlot;
+    // Only truly flagged instant slots block cancellation
+    const isActualInstantSlot = item.isInstantSlot === true;
+    // Can cancel only if Pending and NOT an instant slot
+    const canCancel = item.status === 'Pending' && !isActualInstantSlot;
 
     return (
       <View style={styles.card}>
@@ -113,22 +117,22 @@ const MyBookingsScreen = () => {
           </View>
         )}
 
-        {item.isInstantSlot && (
+        {/* Only show instant slot warning if it's genuinely an instant slot AND pending */}
+        {isActualInstantSlot && item.status === 'Pending' && (
           <View style={styles.instantBadge}>
             <Ionicons name="flash" size={12} color={C.secondary} />
             <Text style={styles.instantText}>Instant slot — cannot be cancelled</Text>
           </View>
         )}
 
-        {(canCancel || item.status === 'Pending') && (
+        {/* Show cancel button only for Pending non-instant bookings */}
+        {canCancel && (
           <View style={styles.cardFooter}>
             <TouchableOpacity
-              style={[styles.cancelBtn, item.isInstantSlot && styles.cancelBtnDisabled]}
+              style={styles.cancelBtn}
               onPress={() => handleCancel(item)}
             >
-              <Text style={styles.cancelBtnText}>
-                {item.isInstantSlot ? '🔒 Instant Slot' : 'Cancel Booking'}
-              </Text>
+              <Text style={styles.cancelBtnText}>Cancel Booking</Text>
             </TouchableOpacity>
           </View>
         )}
