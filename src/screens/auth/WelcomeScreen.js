@@ -1,374 +1,265 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity,
-  Dimensions, Animated, Easing,
+  View, Text, StyleSheet, Image, TouchableOpacity,
+  Dimensions, Animated, Easing, Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
-const C = {
-  emerald: '#006850',
-  emeraldLight: '#148367',
-  emeraldDark: '#052E25',
-  emeraldPale: '#effff6',
-  orange: '#F97316',
-  orangeLight: '#FFAB69',
-  orangePale: '#FFF7ED',
-  white: '#FFFFFF',
-  dark: '#1a1c1c',
-};
+// Static paw print positions scattered in the orange hero zone
+const PAW_POSITIONS = [
+  { x: 18,         y: 40,          size: 52, opacity: 0.18, delay: 0    },
+  { x: width-80,   y: 30,          size: 44, opacity: 0.15, delay: 300  },
+  { x: 46,         y: height*0.26, size: 60, opacity: 0.13, delay: 600  },
+  { x: width-100,  y: height*0.22, size: 50, opacity: 0.16, delay: 150  },
+  { x: width*0.4,  y: 20,          size: 36, opacity: 0.12, delay: 450  },
+  { x: width-60,   y: height*0.38, size: 40, opacity: 0.14, delay: 750  },
+  { x: 10,         y: height*0.38, size: 48, opacity: 0.11, delay: 900  },
+];
 
-// Floating paw element
-const FloatingPaw = ({ x, delay, size, opacity, color }) => {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const rotate = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+const AnimatedPaw = ({ x, y, size, opacity, delay }) => {
+  const anim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const startDelay = setTimeout(() => {
-      Animated.parallel([
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(translateY, {
-              toValue: -18,
-              duration: 2200,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-            Animated.timing(translateY, {
-              toValue: 0,
-              duration: 2200,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-          ])
-        ),
-        Animated.loop(
-          Animated.sequence([
-            Animated.timing(rotate, {
-              toValue: 1,
-              duration: 4400,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-            Animated.timing(rotate, {
-              toValue: 0,
-              duration: 4400,
-              easing: Easing.inOut(Easing.sin),
-              useNativeDriver: true,
-            }),
-          ])
-        ),
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-      ]).start();
+    const t = setTimeout(() => {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(anim, {
+            toValue: 1, duration: 2800 + delay * 0.3,
+            easing: Easing.inOut(Easing.sin), useNativeDriver: true,
+          }),
+          Animated.timing(anim, {
+            toValue: 0, duration: 2800 + delay * 0.3,
+            easing: Easing.inOut(Easing.sin), useNativeDriver: true,
+          }),
+        ])
+      ).start();
     }, delay);
-    return () => clearTimeout(startDelay);
+    return () => clearTimeout(t);
   }, []);
 
-  const spin = rotate.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['-12deg', '12deg'],
-  });
+  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
+  const opacityAnim = anim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [opacity, opacity * 1.5, opacity] });
 
   return (
-    <Animated.View
+    <Animated.Text
       style={{
-        position: 'absolute',
-        left: x,
-        top: height * 0.1,
-        opacity: Animated.multiply(fadeAnim, opacity),
-        transform: [{ translateY }, { rotate: spin }],
+        position: 'absolute', left: x, top: y,
+        fontSize: size, opacity: opacityAnim,
+        transform: [{ translateY }],
       }}
     >
-      <Ionicons name="paw" size={size} color={color} />
-    </Animated.View>
+      🐾
+    </Animated.Text>
   );
 };
 
 const WelcomeScreen = () => {
   const navigation = useNavigation();
 
-  // Hero scale pulse
-  const heroPulse = useRef(new Animated.Value(1)).current;
+  // Cat image — gentle float
+  const catFloat = useRef(new Animated.Value(0)).current;
   // Text slide up
-  const textSlide = useRef(new Animated.Value(40)).current;
-  const textFade = useRef(new Animated.Value(0)).current;
-  // Button glow pulse
-  const btnGlow = useRef(new Animated.Value(0.85)).current;
-  // Blob morph
-  const blobScale = useRef(new Animated.Value(1)).current;
-  // Title word animation
-  const titleFade = useRef(new Animated.Value(0)).current;
-  const titleSlide = useRef(new Animated.Value(30)).current;
-  // Subtitle
-  const subFade = useRef(new Animated.Value(0)).current;
+  const textY    = useRef(new Animated.Value(32)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  // Sub text
+  const subY     = useRef(new Animated.Value(24)).current;
+  const subOpacity = useRef(new Animated.Value(0)).current;
+  // Button breath
+  const btnScale = useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
-    // Hero pulse
+    // Cat float loop
     Animated.loop(
       Animated.sequence([
-        Animated.timing(heroPulse, { toValue: 1.06, duration: 2000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(heroPulse, { toValue: 1, duration: 2000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(catFloat, {
+          toValue: -12, duration: 2400,
+          easing: Easing.inOut(Easing.sin), useNativeDriver: true,
+        }),
+        Animated.timing(catFloat, {
+          toValue: 0, duration: 2400,
+          easing: Easing.inOut(Easing.sin), useNativeDriver: true,
+        }),
       ])
     ).start();
 
-    // Blob
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(blobScale, { toValue: 1.08, duration: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(blobScale, { toValue: 0.96, duration: 3000, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Button glow
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(btnGlow, { toValue: 1, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(btnGlow, { toValue: 0.85, duration: 1200, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Text entrance
+    // Text entrance chain
     Animated.sequence([
-      Animated.delay(300),
+      Animated.delay(250),
       Animated.parallel([
-        Animated.timing(titleFade, { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.timing(titleSlide, { toValue: 0, duration: 600, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(textOpacity, { toValue: 1, duration: 550, useNativeDriver: true }),
+        Animated.timing(textY,        { toValue: 0, duration: 550, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
-      Animated.delay(150),
+      Animated.delay(100),
       Animated.parallel([
-        Animated.timing(subFade, { toValue: 1, duration: 500, useNativeDriver: true }),
-        Animated.timing(textSlide, { toValue: 0, duration: 500, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-        Animated.timing(textFade, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(subOpacity, { toValue: 1, duration: 450, useNativeDriver: true }),
+        Animated.timing(subY,       { toValue: 0, duration: 450, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]),
     ]).start();
+
+    // Button breathe
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(btnScale, { toValue: 1,    duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(btnScale, { toValue: 0.95, duration: 1100, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    ).start();
   }, []);
 
   return (
     <View style={styles.container}>
-      {/* === TOP HERO SECTION === */}
-      <View style={styles.hero}>
-        {/* Animated background blob */}
-        <Animated.View style={[styles.blob1, { transform: [{ scale: blobScale }] }]} />
-        <Animated.View style={[styles.blob2, { transform: [{ scale: Animated.multiply(blobScale, 0.95) }] }]} />
+
+      {/* ── ORANGE HERO ── */}
+      <View style={styles.topSection}>
 
         {/* Floating paw prints */}
-        <FloatingPaw x={20}  delay={0}    size={28} opacity={0.25} color={C.orange} />
-        <FloatingPaw x={width * 0.7} delay={400}  size={20} opacity={0.2}  color={C.white} />
-        <FloatingPaw x={width * 0.45} delay={800}  size={16} opacity={0.18} color={C.orangeLight} />
-        <FloatingPaw x={width * 0.15} delay={600}  size={22} opacity={0.15} color={C.white} />
-        <FloatingPaw x={width * 0.82} delay={200}  size={32} opacity={0.1}  color={C.orange} />
+        {PAW_POSITIONS.map((p, i) => (
+          <AnimatedPaw key={i} {...p} />
+        ))}
 
-        {/* Big hero emoji / icon cluster */}
-        <Animated.View style={[styles.heroIconCluster, { transform: [{ scale: heroPulse }] }]}>
-          <View style={styles.heroRing}>
-            <View style={styles.heroCenter}>
-              <Text style={styles.heroPaw}>🐾</Text>
-            </View>
-          </View>
-          {/* Orbiting icons */}
-          <View style={[styles.orbitIcon, { top: -8, right: 4 }]}>
-            <Text style={{ fontSize: 22 }}>🐕</Text>
-          </View>
-          <View style={[styles.orbitIcon, { bottom: -8, left: 4 }]}>
-            <Text style={{ fontSize: 22 }}>🐈</Text>
-          </View>
-          <View style={[styles.orbitIcon, { top: 28, left: -20 }]}>
-            <Text style={{ fontSize: 18 }}>🐇</Text>
-          </View>
-        </Animated.View>
-
-        {/* Service chips floating */}
-        <View style={styles.chipRow}>
-          {['🏥 Vet Care', '✂️ Grooming', '🏠 Boarding'].map((chip, i) => (
-            <Animated.View
-              key={chip}
-              style={[
-                styles.chip,
-                {
-                  opacity: titleFade,
-                  transform: [{ translateY: Animated.multiply(titleSlide, 1 + i * 0.3) }],
-                }
-              ]}
-            >
-              <Text style={styles.chipText}>{chip}</Text>
-            </Animated.View>
-          ))}
-        </View>
+        {/* Cat image floats gently */}
+        <Animated.Image
+          source={{ uri: 'https://lh3.googleusercontent.com/aida/ADBb0uhQHL8vUALmYSsEkSavVVUcqx26Qb5YOyjTYY3glimrz9eCxuut4QPaimOz2O5v2JE434jcioYizaYciQR--rzLD35nUFNgOaCOZTnfR5dkn5gkSIY5MHWOhwoLsv1OgEQ9C6l5C_vVvJs6yPVMDnmZcQZLku9kIGAHW8_ez2uWynpMYkpQjQ-0hp92VO8CdvCYRwBl3L0lYXrsZo3sn9j0iVkUYoSjjHRnKrW7KdK9yxKWpqtLzrS8VI5WPcZWe2DPL2NhXuXgsw' }}
+          style={[styles.heroImage, { transform: [{ translateY: catFloat }] }]}
+          resizeMode="cover"
+        />
       </View>
 
-      {/* === BOTTOM CONTENT === */}
-      <View style={styles.bottom}>
-        {/* Brand mark */}
-        <Animated.View style={{ opacity: titleFade, transform: [{ translateY: titleSlide }], alignItems: 'center' }}>
-          <View style={styles.brandRow}>
-            <View style={styles.brandDot} />
-            <Text style={styles.brandTag}>PawCare</Text>
-            <View style={styles.brandDot} />
-          </View>
-          <Text style={styles.title}>
-            Start Your Journey as a{' '}
-            <Text style={styles.titleAccent}>Thoughtful</Text>
-            {'\n'}Pet Parent
-          </Text>
-        </Animated.View>
+      {/* ── WHITE BOTTOM ── */}
+      <View style={styles.bottomSection}>
 
-        <Animated.Text style={[styles.subtitle, { opacity: subFade, transform: [{ translateY: textSlide }] }]}>
-          Vet appointments, grooming, boarding — all in one place. Your pet deserves the best.
+        {/* Pagination dots */}
+        <View style={styles.dotsRow}>
+          <View style={[styles.dot, styles.dotActive]} />
+          <View style={[styles.dot, styles.dotInactive]} />
+          <View style={[styles.dot, styles.dotInactive]} />
+        </View>
+
+        {/* Title */}
+        <Animated.Text style={[styles.title, { opacity: textOpacity, transform: [{ translateY: textY }] }]}>
+          Start Your Journey as a Thoughtful Pet Parent
         </Animated.Text>
 
-        {/* Stats row */}
-        <Animated.View style={[styles.statsRow, { opacity: subFade, transform: [{ translateY: textSlide }] }]}>
-          {[
-            { icon: '🐾', label: 'Happy Pets', val: '1K+' },
-            { icon: '🏥', label: 'Vet Partners', val: '50+' },
-            { icon: '⭐', label: 'Reviews', val: '4.9' },
-          ].map(s => (
-            <View key={s.label} style={styles.statCard}>
-              <Text style={styles.statIcon}>{s.icon}</Text>
-              <Text style={styles.statVal}>{s.val}</Text>
-              <Text style={styles.statLabel}>{s.label}</Text>
-            </View>
-          ))}
-        </Animated.View>
+        {/* Subtitle */}
+        <Animated.Text style={[styles.subtitle, { opacity: subOpacity, transform: [{ translateY: subY }] }]}>
+          Begin a meaningful journey of care, connection, and responsibility.
+        </Animated.Text>
 
         {/* CTA Button */}
-        <Animated.View style={[styles.btnWrap, { opacity: subFade, transform: [{ scale: btnGlow }] }]}>
+        <Animated.View style={{ width: '100%', transform: [{ scale: btnScale }] }}>
           <TouchableOpacity
             style={styles.button}
             onPress={() => navigation.navigate('Login')}
-            activeOpacity={0.88}
+            activeOpacity={0.85}
           >
-            <View style={styles.btnInner}>
-              <Ionicons name="paw" size={22} color={C.white} />
-              <Text style={styles.buttonText}>Get Started</Text>
-            </View>
-            <View style={styles.btnArrow}>
-              <Ionicons name="arrow-forward" size={20} color={C.orange} />
+            <Text style={styles.buttonText}>Get Started</Text>
+            <View style={styles.iconWrapper}>
+              <Ionicons name="paw" size={24} color="#f9b256" />
             </View>
           </TouchableOpacity>
         </Animated.View>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.signInLink}>
-          <Text style={styles.signInText}>Already have an account? <Text style={styles.signInAccent}>Sign In</Text></Text>
-        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.white },
+  container: { flex: 1, backgroundColor: '#ffffff' },
 
-  // ─── HERO ───
-  hero: {
-    height: height * 0.48,
-    backgroundColor: C.emeraldDark,
-    overflow: 'hidden',
+  topSection: {
+    height: height * 0.57,
+    backgroundColor: '#f6ab49',
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  blob1: {
-    position: 'absolute', width: width * 1.4, height: width * 1.4,
-    borderRadius: width * 0.7, backgroundColor: C.emerald,
-    top: -width * 0.5, left: -width * 0.2,
-  },
-  blob2: {
-    position: 'absolute', width: width * 0.9, height: width * 0.9,
-    borderRadius: width * 0.45, backgroundColor: C.orange + '28',
-    bottom: -width * 0.35, right: -width * 0.15,
+    justifyContent: 'flex-end',
+    overflow: 'hidden',
   },
 
-  heroIconCluster: { alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  heroRing: {
-    width: 130, height: 130, borderRadius: 65,
-    backgroundColor: 'rgba(120,216,184,0.15)',
-    borderWidth: 2, borderColor: 'rgba(120,216,184,0.3)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  heroCenter: {
-    width: 90, height: 90, borderRadius: 45,
-    backgroundColor: 'rgba(120,216,184,0.12)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  heroPaw: { fontSize: 48 },
-  orbitIcon: {
-    position: 'absolute', width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center', justifyContent: 'center',
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+    bottom: 0,
   },
 
-  chipRow: {
-    flexDirection: 'row', gap: 8, marginTop: 20, flexWrap: 'wrap',
-    justifyContent: 'center', paddingHorizontal: 12,
-  },
-  chip: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    borderRadius: 99, paddingHorizontal: 14, paddingVertical: 6,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
-  },
-  chipText: { fontSize: 12, fontWeight: '700', color: 'rgba(255,255,255,0.9)' },
-
-  // ─── BOTTOM ───
-  bottom: {
-    flex: 1, backgroundColor: C.white,
-    borderTopLeftRadius: 32, borderTopRightRadius: 32,
-    marginTop: -28, paddingHorizontal: 26, paddingTop: 30,
-    paddingBottom: 24,
+  bottomSection: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    marginTop: -32,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingTop: 28,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
   },
 
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12, justifyContent: 'center' },
-  brandDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.orange },
-  brandTag: { fontSize: 11, fontWeight: '800', color: C.orange, letterSpacing: 2, textTransform: 'uppercase' },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 24,
+  },
+  dot: {
+    height: 8,
+    borderRadius: 4,
+  },
+  dotActive: {
+    width: 24,
+    backgroundColor: '#f6ab49',
+  },
+  dotInactive: {
+    width: 8,
+    backgroundColor: '#fed7aa',
+  },
 
   title: {
-    fontSize: 28, fontWeight: '800', color: C.dark,
-    textAlign: 'center', lineHeight: 36, marginBottom: 12,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#111827',
+    textAlign: 'center',
+    lineHeight: 34,
+    marginBottom: 14,
   },
-  titleAccent: { color: C.emerald },
 
   subtitle: {
-    fontSize: 14, color: '#6b7280', textAlign: 'center',
-    lineHeight: 22, marginBottom: 20,
+    fontSize: 15,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 23,
+    marginBottom: 32,
+    paddingHorizontal: 8,
   },
 
-  statsRow: {
-    flexDirection: 'row', justifyContent: 'space-between',
-    backgroundColor: C.emeraldPale, borderRadius: 20,
-    paddingVertical: 14, paddingHorizontal: 16, marginBottom: 24,
-  },
-  statCard: { alignItems: 'center', flex: 1 },
-  statIcon: { fontSize: 18, marginBottom: 4 },
-  statVal: { fontSize: 18, fontWeight: '800', color: C.emerald },
-  statLabel: { fontSize: 10, color: '#6b7280', fontWeight: '600', marginTop: 2 },
-
-  btnWrap: {
-    shadowColor: C.orange,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35, shadowRadius: 16, elevation: 10,
-  },
   button: {
-    backgroundColor: C.emerald, height: 62, borderRadius: 99,
-    flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', paddingLeft: 24, paddingRight: 8,
+    flexDirection: 'row',
+    backgroundColor: '#f9b256',
+    width: '100%',
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 28,
+    paddingRight: 6,
+    shadowColor: '#f9b256',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 14,
+    elevation: 8,
   },
-  btnInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  buttonText: { fontSize: 18, fontWeight: '800', color: C.white },
-  btnArrow: {
-    width: 46, height: 46, borderRadius: 23,
-    backgroundColor: C.white, alignItems: 'center', justifyContent: 'center',
+  buttonText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-
-  signInLink: { alignItems: 'center', marginTop: 18 },
-  signInText: { fontSize: 13, color: '#9ca3af' },
-  signInAccent: { color: C.emerald, fontWeight: '800' },
+  iconWrapper: {
+    width: 52, height: 52, borderRadius: 26,
+    backgroundColor: '#ffffff',
+    alignItems: 'center', justifyContent: 'center',
+  },
 });
 
 export default WelcomeScreen;
