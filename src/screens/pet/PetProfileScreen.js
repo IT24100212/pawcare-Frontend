@@ -132,15 +132,25 @@ const PetProfileScreen = () => {
                 <View style={styles.recordHeader}>
                   <View style={styles.recordDateBox}>
                     <Text style={styles.recordDateDay}>
-                      {new Date(record.createdAt).getDate()}
+                      {record.dateGiven
+                        ? new Date(record.dateGiven).getDate()
+                        : new Date(record.createdAt).getDate()}
                     </Text>
                     <Text style={styles.recordDateMonth}>
-                      {new Date(record.createdAt).toLocaleString('default', { month: 'short' })}
+                      {record.dateGiven
+                        ? new Date(record.dateGiven).toLocaleString('default', { month: 'short' })
+                        : new Date(record.createdAt).toLocaleString('default', { month: 'short' })}
                     </Text>
                   </View>
                   <View style={styles.recordTitleBox}>
-                    <Text style={styles.recordTitle}>Clinical Visit</Text>
-                    <Text style={styles.recordDoctor}>By Vet Dr.</Text>
+                    <Text style={styles.recordTitle}>
+                      {record.vaccineName ? record.vaccineName : 'Clinical Visit'}
+                    </Text>
+                    <Text style={styles.recordDoctor}>
+                      {record.dateGiven
+                        ? `Given: ${new Date(record.dateGiven).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                        : `Recorded: ${new Date(record.createdAt).toLocaleDateString()}`}
+                    </Text>
                   </View>
                 </View>
                 
@@ -150,6 +160,16 @@ const PetProfileScreen = () => {
                       <View style={styles.iconBox}><Ionicons name="medkit" size={12} color={C.primary} /></View>
                       <Text style={styles.dataLabel}>Vaccine:</Text>
                       <Text style={styles.dataValue}>{record.vaccineName}</Text>
+                    </View>
+                  ) : null}
+
+                  {record.nextDueDate ? (
+                    <View style={styles.dataRow}>
+                      <View style={[styles.iconBox, {backgroundColor: '#fef3c7'}]}><Ionicons name="alarm" size={12} color="#d97706" /></View>
+                      <Text style={styles.dataLabel}>Next Due:</Text>
+                      <Text style={styles.dataValue}>
+                        {new Date(record.nextDueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </Text>
                     </View>
                   ) : null}
                   

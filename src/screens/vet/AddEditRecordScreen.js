@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { addMedicalRecord, updateMedicalRecord } from '../../api/medicalRecordApi';
+import DatePickerModal from '../../components/DatePickerModal';
 
 const C = {
   primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
@@ -41,6 +42,14 @@ const AddEditRecordScreen = () => {
   const [allergies, setAllergies] = useState(record?.allergies || '');
   const [doctorNotes, setDoctorNotes] = useState(record?.doctorNotes || '');
   const [saving, setSaving] = useState(false);
+  const [showDateGivenPicker, setShowDateGivenPicker] = useState(false);
+  const [showNextDuePicker, setShowNextDuePicker] = useState(false);
+
+  const formatDisplayDate = (iso) => {
+    if (!iso) return 'Tap to select date';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -115,25 +124,31 @@ const AddEditRecordScreen = () => {
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
                 <Field label="Date Given" icon="calendar-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={C.outlineVariant}
-                    value={dateGiven}
-                    onChangeText={setDateGiven}
-                  />
+                  <TouchableOpacity
+                    style={styles.dateBtn}
+                    onPress={() => setShowDateGivenPicker(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="calendar" size={16} color={dateGiven ? C.primary : C.outline} />
+                    <Text style={[styles.dateBtnText, !dateGiven && styles.dateBtnPlaceholder]}>
+                      {formatDisplayDate(dateGiven)}
+                    </Text>
+                  </TouchableOpacity>
                 </Field>
               </View>
               <View style={{ width: 14 }} />
               <View style={{ flex: 1 }}>
                 <Field label="Next Due Date" icon="alarm-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder="YYYY-MM-DD"
-                    placeholderTextColor={C.outlineVariant}
-                    value={nextDueDate}
-                    onChangeText={setNextDueDate}
-                  />
+                  <TouchableOpacity
+                    style={styles.dateBtn}
+                    onPress={() => setShowNextDuePicker(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="alarm" size={16} color={nextDueDate ? C.secondary : C.outline} />
+                    <Text style={[styles.dateBtnText, !nextDueDate && styles.dateBtnPlaceholder]}>
+                      {formatDisplayDate(nextDueDate)}
+                    </Text>
+                  </TouchableOpacity>
                 </Field>
               </View>
             </View>
@@ -225,6 +240,22 @@ const AddEditRecordScreen = () => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Date Picker Modals */}
+      <DatePickerModal
+        visible={showDateGivenPicker}
+        value={dateGiven}
+        label="Date Vaccine Given"
+        onConfirm={(iso) => { setDateGiven(iso); setShowDateGivenPicker(false); }}
+        onCancel={() => setShowDateGivenPicker(false)}
+      />
+      <DatePickerModal
+        visible={showNextDuePicker}
+        value={nextDueDate}
+        label="Next Due Date"
+        onConfirm={(iso) => { setNextDueDate(iso); setShowNextDuePicker(false); }}
+        onCancel={() => setShowNextDuePicker(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -248,6 +279,13 @@ const styles = StyleSheet.create({
   textArea: { height: 88, paddingTop: 12 },
   textAreaLarge: { height: 110, paddingTop: 12 },
   row: { flexDirection: 'row' },
+  dateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1.5, borderColor: C.outlineVariant, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 14, backgroundColor: C.surfaceLowest,
+  },
+  dateBtnText: { fontSize: 14, fontWeight: '600', color: C.onSurface, flex: 1 },
+  dateBtnPlaceholder: { color: C.outlineVariant, fontWeight: '400' },
   saveBtn: { marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: C.primary, height: 60, borderRadius: 99, shadowColor: C.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.32, shadowRadius: 14, elevation: 8 },
   saveBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
 });
