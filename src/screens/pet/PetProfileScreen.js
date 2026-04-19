@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { getMedicalRecords } from '../../api/medicalRecordApi';
-import { deletePet } from '../../api/petApi';
+import { deletePet, getPetById } from '../../api/petApi';
 
 const C = {
   primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
@@ -20,8 +20,9 @@ const C = {
 const PetProfileScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const pet = route.params?.pet || {};
+  const initialPet = route.params?.pet || {};
 
+  const [pet, setPet] = useState(initialPet);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,20 +44,28 @@ const PetProfileScreen = () => {
   };
 
   useEffect(() => {
-    const fetchRecords = async () => {
+    const fetchAll = async () => {
       try {
-        if (pet._id) {
-          const data = await getMedicalRecords(pet._id);
+        if (initialPet._id) {
+          // Refetch fresh pet data from server
+          const freshPet = await getPetById(initialPet._id);
+          setPet(freshPet);
+          // Fetch medical records
+          const data = await getMedicalRecords(initialPet._id);
           setRecords(Array.isArray(data) ? data : []);
         }
       } catch (error) {
-        console.error('Failed to fetch medical records', error);
+        console.error('Failed to fetch pet data', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchRecords();
-  }, [pet._id]);
+
+    fetchAll();
+    // Re-run whenever this screen comes back into focus (after editing)
+    const unsubscribe = navigation.addListener('focus', fetchAll);
+    return unsubscribe;
+  }, [initialPet._id]);
 
   const petInitial = pet.name?.charAt(0).toUpperCase() || '?';
   const imgUri = pet.image || pet.imageUrl;

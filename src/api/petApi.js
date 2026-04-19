@@ -20,6 +20,11 @@ export const updatePet = async (id, petData) => {
   return response.data;
 };
 
+export const getPetById = async (id) => {
+  const response = await axiosInstance.get(`/pets/${id}`);
+  return response.data;
+};
+
 export const uploadImage = async (imageUri) => {
   const formData = new FormData();
   formData.append('image', {
