@@ -15,15 +15,9 @@ const WelcomeScreen = () => {
       
       {/* Top Section / Hero */}
       <View style={styles.topSection}>
-        {/* Background Image/Pattern */}
+        {/* New unified Hero Subject Image (includes background and cat) */}
         <Image 
-          source={{ uri: 'https://lh3.googleusercontent.com/aida/ADBb0ug2mWPS4U0_iJFmKADNcTl25l7jeQvBvxsyDHrka764940E7p13R6pwo0YphB2N6xCUWIaZAwNIeXD_kQ0K7jZTd9TMBpekmnvQbkuP8TneZdUKWRvGgxIqgDdkmj-AaNoj3Z3hc9BKR2KmaAXehK7TwqEZKe5JgK42a5Wdy02Et1uWwYycJ9albCyA8tVu13SX6vV41zBVO76xb4vayX2oY4rl8VZjU7uik-Bck6jG953D1Rt25eSUtxRlZWPAM9fUKXNmpxVpsw' }}
-          style={styles.backgroundImage}
-          resizeMode='cover'
-        />
-        {/* Hero Subject Image */}
-        <Image 
-          source={{ uri: 'https://lh3.googleusercontent.com/aida/ADBb0uhQHL8vUALmYSsEkSavVVUcqx26Qb5YOyjTYY3glimrz9eCxuut4QPaimOz2O5v2JE434jcioYizaYciQR--rzLD35nUFNgOaCOZTnfR5dkn5gkSIY5MHWOhwoLsv1OgEQ9C6l5C_vVvJs6yPVMDnmZcQZLku9kIGAHW8_ez2uWynpMYkpQjQ-0hp92VO8CdvCYRwBl3L0lYXrsZo3sn9j0iVkUYoSjjHRnKrW7KdK9yxKWpqtLzrS8VI5WPcZWe2DPL2NhXuXgsw' }}
+          source={require('../../../assets/images/hero_cat.jpg')}
           style={styles.heroImage}
           resizeMode='cover'
         />
@@ -76,14 +70,9 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
-  backgroundImage: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.4,
-  },
   heroImage: {
     width: '100%',
     height: '100%',
-    transform: [{ scale: 1.1 }, { translateY: 20 }], // Slight zoom and shift down matching the HTML
   },
   bottomSection: {
     flex: 1,
