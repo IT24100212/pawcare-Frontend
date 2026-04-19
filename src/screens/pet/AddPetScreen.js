@@ -43,15 +43,26 @@ const AddPetScreen = () => {
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const calcAge = (iso) => {
-    if (!iso) return null;
+  const calcAgeMonths = (iso) => {
+    if (!iso) return { years: null, months: null };
     const today = new Date();
     const birth = new Date(iso);
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return Math.max(0, age);
+    let years = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    if (today.getDate() < birth.getDate()) months--;
+    if (months < 0) { years--; months += 12; }
+    return { years: Math.max(0, years), months };
   };
+
+  const formatAge = (iso) => {
+    const { years, months } = calcAgeMonths(iso);
+    if (years === null) return null;
+    if (years === 0) return months <= 1 ? `${months} month` : `${months} months`;
+    if (months === 0) return years === 1 ? '1 year' : `${years} years`;
+    return `${years}y ${months}m`;
+  };
+
+  const calcAge = (iso) => calcAgeMonths(iso).years;
 
   const formatDisplayDate = (iso) => {
     if (!iso) return 'Tap to select birth date';
@@ -211,7 +222,7 @@ const AddPetScreen = () => {
                   </Text>
                   {birthDate && (
                     <Text style={styles.dateBtnAge}>
-                      Age: {calcAge(birthDate)} year{calcAge(birthDate) !== 1 ? 's' : ''} old
+                      Age: {formatAge(birthDate)}
                     </Text>
                   )}
                 </View>

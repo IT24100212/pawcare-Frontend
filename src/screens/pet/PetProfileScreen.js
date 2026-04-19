@@ -61,22 +61,33 @@ const PetProfileScreen = () => {
   const petInitial = pet.name?.charAt(0).toUpperCase() || '?';
   const imgUri = pet.image || pet.imageUrl;
 
-  const calcAge = (iso) => {
-    if (!iso) return null;
+  const calcAgeMonths = (iso) => {
+    if (!iso) return { years: null, months: null };
     const today = new Date();
     const birth = new Date(iso);
-    let age = today.getFullYear() - birth.getFullYear();
-    const m = today.getMonth() - birth.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-    return Math.max(0, age);
+    let years = today.getFullYear() - birth.getFullYear();
+    let months = today.getMonth() - birth.getMonth();
+    if (today.getDate() < birth.getDate()) months--;
+    if (months < 0) { years--; months += 12; }
+    return { years: Math.max(0, years), months };
   };
+
+  const formatAge = (iso) => {
+    const { years, months } = calcAgeMonths(iso);
+    if (years === null) return null;
+    if (years === 0) return months <= 1 ? `${months} month` : `${months} months`;
+    if (months === 0) return years === 1 ? '1 year' : `${years} years`;
+    return `${years}y ${months}m`;
+  };
+
+  const calcAge = (iso) => calcAgeMonths(iso).years;
 
   const formatBirthDate = (iso) => {
     if (!iso) return null;
     return new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
-  const displayAge = pet.birthDate ? calcAge(pet.birthDate) : pet.age;
+  const displayAge = pet.birthDate ? formatAge(pet.birthDate) : (pet.age != null ? `${pet.age} yr${pet.age !== 1 ? 's' : ''}` : null);
   const displayBirthDate = formatBirthDate(pet.birthDate);
 
   return (
@@ -132,7 +143,7 @@ const PetProfileScreen = () => {
                   <View>
                     <Text style={styles.ageCardLabel}>Age</Text>
                     <Text style={[styles.ageCardValue, { color: C.secondary }]}>
-                      {displayAge} yr{displayAge !== 1 ? 's' : ''}
+                      {displayAge}
                     </Text>
                   </View>
                 </View>
@@ -143,7 +154,7 @@ const PetProfileScreen = () => {
                 <View>
                   <Text style={styles.ageCardLabel}>Age</Text>
                   <Text style={[styles.ageCardValue, { color: C.secondary }]}>
-                    {displayAge} yr{displayAge !== 1 ? 's' : ''}
+                    {displayAge}
                   </Text>
                 </View>
               </View>
