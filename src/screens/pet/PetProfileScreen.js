@@ -61,6 +61,24 @@ const PetProfileScreen = () => {
   const petInitial = pet.name?.charAt(0).toUpperCase() || '?';
   const imgUri = pet.image || pet.imageUrl;
 
+  const calcAge = (iso) => {
+    if (!iso) return null;
+    const today = new Date();
+    const birth = new Date(iso);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return Math.max(0, age);
+  };
+
+  const formatBirthDate = (iso) => {
+    if (!iso) return null;
+    return new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const displayAge = pet.birthDate ? calcAge(pet.birthDate) : pet.age;
+  const displayBirthDate = formatBirthDate(pet.birthDate);
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor={C.emeraldDark} />
@@ -95,12 +113,41 @@ const PetProfileScreen = () => {
             <Text style={styles.badgeText}>{pet.species}</Text>
             <View style={styles.dot} />
             <Text style={styles.badgeText}>{pet.breed || 'Mixed'}</Text>
-            {pet.age != null && (
+          </View>
+
+          {/* Birth date + age info */}
+          <View style={styles.ageRow}>
+            {displayBirthDate ? (
               <>
-                <View style={styles.dot} />
-                <Text style={styles.badgeText}>{pet.age} yr{pet.age !== 1 ? 's' : ''}</Text>
+                <View style={styles.ageCard}>
+                  <Ionicons name="calendar" size={14} color={C.primary} />
+                  <View>
+                    <Text style={styles.ageCardLabel}>Date of Birth</Text>
+                    <Text style={styles.ageCardValue}>{displayBirthDate}</Text>
+                  </View>
+                </View>
+                <View style={styles.ageDivider} />
+                <View style={styles.ageCard}>
+                  <Ionicons name="time" size={14} color={C.secondary} />
+                  <View>
+                    <Text style={styles.ageCardLabel}>Age</Text>
+                    <Text style={[styles.ageCardValue, { color: C.secondary }]}>
+                      {displayAge} yr{displayAge !== 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                </View>
               </>
-            )}
+            ) : displayAge != null ? (
+              <View style={styles.ageCard}>
+                <Ionicons name="time" size={14} color={C.secondary} />
+                <View>
+                  <Text style={styles.ageCardLabel}>Age</Text>
+                  <Text style={[styles.ageCardValue, { color: C.secondary }]}>
+                    {displayAge} yr{displayAge !== 1 ? 's' : ''}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
           </View>
           
           {pet.medicalNotes ? (
@@ -248,6 +295,15 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6 },
   badgeText: { fontSize: 13, color: C.outline, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase' },
   dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: C.outlineVariant },
+
+  ageRow: {
+    flexDirection: 'row', alignItems: 'center', marginTop: 16,
+    backgroundColor: C.surfaceLow, borderRadius: 16, padding: 12, gap: 0, width: '100%',
+  },
+  ageCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  ageCardLabel: { fontSize: 10, fontWeight: '700', color: C.outline, textTransform: 'uppercase', letterSpacing: 0.5 },
+  ageCardValue: { fontSize: 14, fontWeight: '800', color: C.onSurface, marginTop: 1 },
+  ageDivider: { width: 1, height: 32, backgroundColor: C.outlineVariant, marginHorizontal: 12 },
   
   notesBox: {
     flexDirection: 'row', gap: 8, backgroundColor: C.secondaryContainer + '33', padding: 16,

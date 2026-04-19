@@ -9,6 +9,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { addPet, uploadImage } from '../../api/petApi';
 import { isValidAge } from '../../utils/validators';
+import DatePickerModal from '../../components/DatePickerModal';
 
 const C = {
   primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
@@ -35,11 +36,28 @@ const AddPetScreen = () => {
   const [name, setName] = useState('');
   const [species, setSpecies] = useState('');
   const [breed, setBreed] = useState('');
-  const [age, setAge] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [medicalNotes, setMedicalNotes] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const calcAge = (iso) => {
+    if (!iso) return null;
+    const today = new Date();
+    const birth = new Date(iso);
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    return Math.max(0, age);
+  };
+
+  const formatDisplayDate = (iso) => {
+    if (!iso) return 'Tap to select birth date';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
 
   const handlePickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -66,13 +84,15 @@ const AddPetScreen = () => {
       Alert.alert('Missing Fields', 'Name and Species are required.');
       return;
     }
-    if (!isValidAge(age)) {
-      Alert.alert('Invalid Age', 'Please enter a valid age between 0 and 40.');
-      return;
-    }
+    const calculatedAge = calcAge(birthDate);
     setIsSubmitting(true);
     try {
-      await addPet({ name: name.trim(), species, breed, age: age ? Number(age) : null, medicalNotes, image: imageUrl });
+      await addPet({
+        name: name.trim(), species, breed,
+        age: calculatedAge,
+        birthDate: birthDate || undefined,
+        medicalNotes, image: imageUrl,
+      });
       Alert.alert('🐾 Added!', `${name} has been added to your pets.`, [
         { text: 'Great!', onPress: () => navigation.goBack() },
       ]);
@@ -176,20 +196,32 @@ const AddPetScreen = () => {
                   />
                 </Field>
               </View>
-              <View style={{ width: 12 }} />
-              <View style={{ width: 100 }}>
-                <Field label="Age (yrs)" icon="calendar-outline">
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g. 3"
-                    placeholderTextColor={C.outlineVariant}
-                    value={age}
-                    onChangeText={setAge}
-                    keyboardType="numeric"
-                  />
-                </Field>
-              </View>
             </View>
+
+            <Field label="Date of Birth" icon="calendar-outline">
+              <TouchableOpacity
+                style={styles.dateBtn}
+                onPress={() => setShowBirthDatePicker(true)}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="calendar" size={16} color={birthDate ? C.primary : C.outline} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.dateBtnText, !birthDate && styles.dateBtnPlaceholder]}>
+                    {formatDisplayDate(birthDate)}
+                  </Text>
+                  {birthDate && (
+                    <Text style={styles.dateBtnAge}>
+                      Age: {calcAge(birthDate)} year{calcAge(birthDate) !== 1 ? 's' : ''} old
+                    </Text>
+                  )}
+                </View>
+                {birthDate && (
+                  <TouchableOpacity onPress={() => setBirthDate('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={18} color={C.outline} />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            </Field>
 
             <Field label="Medical Notes / Allergies" icon="medical-outline">
               <TextInput
@@ -222,6 +254,14 @@ const AddPetScreen = () => {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <DatePickerModal
+        visible={showBirthDatePicker}
+        value={birthDate}
+        label="Date of Birth"
+        onConfirm={(iso) => { setBirthDate(iso); setShowBirthDatePicker(false); }}
+        onCancel={() => setShowBirthDatePicker(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -281,6 +321,14 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '600', color: C.outline },
   chipTextActive: { color: C.primary, fontWeight: '800' },
   row: { flexDirection: 'row' },
+  dateBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    borderWidth: 1.5, borderColor: C.outlineVariant, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 14, backgroundColor: C.surfaceLowest,
+  },
+  dateBtnText: { fontSize: 14, fontWeight: '600', color: C.onSurface },
+  dateBtnPlaceholder: { color: C.outlineVariant, fontWeight: '400' },
+  dateBtnAge: { fontSize: 12, color: C.primary, fontWeight: '700', marginTop: 2 },
   submitBtn: {
     marginTop: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
     backgroundColor: C.primary, height: 60, borderRadius: 99,
