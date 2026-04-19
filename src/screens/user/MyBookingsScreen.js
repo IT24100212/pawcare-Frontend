@@ -187,19 +187,19 @@ const MyBookingsScreen = () => {
 
       <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('PetList')}>
-          <MaterialIcons name="home" size={24} color={C.outline} />
+          <MaterialIcons name="home" size={24} color="rgba(26,28,28,0.6)" />
           <Text style={styles.navText}>Home</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItemActive}>
-          <MaterialIcons name="calendar-today" size={24} color="#fff" />
+          <MaterialIcons name="calendar-month" size={24} color={C.secondary} />
           <Text style={styles.navTextActive}>Bookings</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('ProductList')}>
-          <MaterialIcons name="shopping-bag" size={24} color={C.outline} />
+          <MaterialIcons name="shopping-bag" size={24} color="rgba(26,28,28,0.6)" />
           <Text style={styles.navText}>Shop</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('EditProfile')}>
-          <MaterialIcons name="person" size={24} color={C.outline} />
+          <MaterialIcons name="person" size={24} color="rgba(26,28,28,0.6)" />
           <Text style={styles.navText}>Profile</Text>
         </TouchableOpacity>
       </View>
@@ -240,11 +240,21 @@ const styles = StyleSheet.create({
   emptyDesc: { fontSize: 14, color: C.outline, textAlign: 'center', marginBottom: 20 },
   emptyBtn: { backgroundColor: C.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 28 },
   emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', paddingTop: 12, backgroundColor: 'rgba(236,253,245,0.97)', borderTopLeftRadius: 28, borderTopRightRadius: 28, shadowColor: '#000', shadowOffset: { width: 0, height: -6 }, shadowOpacity: 0.06, shadowRadius: 20, elevation: 20 },
-  navItem: { alignItems: 'center', paddingHorizontal: 12, paddingVertical: 4 },
-  navItemActive: { alignItems: 'center', backgroundColor: '#065f46', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, marginBottom: 2 },
-  navText: { fontSize: 10, fontWeight: '600', color: C.outline, letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 3 },
-  navTextActive: { fontSize: 10, fontWeight: '700', color: '#fff', letterSpacing: 0.5, textTransform: 'uppercase', marginTop: 3 },
+  bottomNav: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
+    paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.8)',
+    borderTopLeftRadius: 48, borderTopRightRadius: 48,
+    shadowColor: 'rgba(26,28,28,0.06)', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 1, shadowRadius: 40, elevation: 20,
+  },
+  navItem: { alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 99 },
+  navItemActive: {
+    alignItems: 'center', backgroundColor: 'rgba(142,78,20,0.1)',
+    paddingHorizontal: 20, paddingVertical: 8, borderRadius: 99,
+  },
+  navText: { fontSize: 11, fontWeight: '500', color: 'rgba(26,28,28,0.6)', marginTop: 4 },
+  navTextActive: { fontSize: 11, fontWeight: '600', color: C.secondary, marginTop: 4 },
 });
 
 export default MyBookingsScreen;
+

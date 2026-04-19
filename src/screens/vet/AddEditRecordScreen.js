@@ -1,7 +1,31 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  Alert, ActivityIndicator, ScrollView, StatusBar, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { addMedicalRecord, updateMedicalRecord } from '../../api/medicalRecordApi';
+
+const C = {
+  primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
+  primaryFixedDim: '#78d8b8', secondary: '#8e4e14',
+  surface: '#faf9f8', surfaceHigh: '#e9e8e7', surfaceLow: '#f4f3f2',
+  surfaceLowest: '#ffffff', onSurface: '#1a1c1c', onSurfaceVariant: '#3e4944',
+  outline: '#6e7a74', outlineVariant: '#bdc9c3', emeraldDark: '#052E25',
+  errorContainer: '#ffdad6', error: '#ba1a1a',
+};
+
+const Field = ({ label, icon, children }) => (
+  <View style={styles.field}>
+    <View style={styles.fieldLabel}>
+      <Ionicons name={icon} size={14} color={C.primary} />
+      <Text style={styles.fieldLabelText}>{label}</Text>
+    </View>
+    {children}
+  </View>
+);
 
 const AddEditRecordScreen = () => {
   const navigation = useNavigation();
@@ -34,10 +58,10 @@ const AddEditRecordScreen = () => {
 
       if (isEditing) {
         await updateMedicalRecord(record._id, data);
-        Alert.alert('Success', 'Record updated', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+        Alert.alert('✅ Updated', 'Record updated successfully!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
       } else {
         await addMedicalRecord(data);
-        Alert.alert('Success', 'Record added', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+        Alert.alert('✅ Added', 'Record added successfully!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
       }
     } catch (error) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to save record');
@@ -47,45 +71,185 @@ const AddEditRecordScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>{isEditing ? 'Edit Medical Record' : 'Add Medical Record'}</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.emeraldDark} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-      <Text style={styles.label}>Vaccine Name</Text>
-      <TextInput style={styles.input} placeholder="e.g. Rabies, Parvovirus" value={vaccineName} onChangeText={setVaccineName} />
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color="rgba(236,253,245,0.85)" />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>{isEditing ? 'Edit Record' : 'New Record'}</Text>
+            <Text style={styles.headerSub}>{isEditing ? 'Update medical details' : 'Add a medical entry'}</Text>
+          </View>
+          <View style={styles.headerIconBubble}>
+            <Ionicons name="medical-outline" size={18} color={C.primaryFixedDim} />
+          </View>
+        </View>
 
-      <Text style={styles.label}>Date Given (YYYY-MM-DD)</Text>
-      <TextInput style={styles.input} placeholder="2026-01-15" value={dateGiven} onChangeText={setDateGiven} />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Vaccination Section */}
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="shield-checkmark-outline" size={15} color={C.primary} />
+              <Text style={styles.sectionTitle}>Vaccination</Text>
+            </View>
 
-      <Text style={styles.label}>Next Due Date (YYYY-MM-DD)</Text>
-      <TextInput style={styles.input} placeholder="2027-01-15" value={nextDueDate} onChangeText={setNextDueDate} />
+            <Field label="Vaccine Name" icon="medical-outline">
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Rabies, Parvovirus"
+                placeholderTextColor={C.outlineVariant}
+                value={vaccineName}
+                onChangeText={setVaccineName}
+              />
+            </Field>
 
-      <Text style={styles.label}>Illnesses</Text>
-      <TextInput style={[styles.input, styles.textArea]} placeholder="Any diagnosed conditions..." value={illnesses} onChangeText={setIllnesses} multiline numberOfLines={3} />
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Field label="Date Given" icon="calendar-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={C.outlineVariant}
+                    value={dateGiven}
+                    onChangeText={setDateGiven}
+                  />
+                </Field>
+              </View>
+              <View style={{ width: 14 }} />
+              <View style={{ flex: 1 }}>
+                <Field label="Next Due Date" icon="alarm-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={C.outlineVariant}
+                    value={nextDueDate}
+                    onChangeText={setNextDueDate}
+                  />
+                </Field>
+              </View>
+            </View>
+          </View>
 
-      <Text style={styles.label}>Treatments</Text>
-      <TextInput style={[styles.input, styles.textArea]} placeholder="Antibiotics, surgery, etc." value={treatments} onChangeText={setTreatments} multiline numberOfLines={3} />
+          {/* Health Section */}
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="bandage-outline" size={15} color={C.primary} />
+              <Text style={styles.sectionTitle}>Health Details</Text>
+            </View>
 
-      <Text style={styles.label}>Allergies</Text>
-      <TextInput style={[styles.input, styles.textArea]} placeholder="Known allergies..." value={allergies} onChangeText={setAllergies} multiline numberOfLines={2} />
+            <Field label="Illnesses" icon="pulse-outline">
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Any diagnosed conditions..."
+                placeholderTextColor={C.outlineVariant}
+                value={illnesses}
+                onChangeText={setIllnesses}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </Field>
 
-      <Text style={styles.label}>Doctor's Notes</Text>
-      <TextInput style={[styles.input, styles.textArea]} placeholder="Additional notes..." value={doctorNotes} onChangeText={setDoctorNotes} multiline numberOfLines={4} />
+            <Field label="Treatments" icon="flask-outline">
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Antibiotics, surgery, etc."
+                placeholderTextColor={C.outlineVariant}
+                value={treatments}
+                onChangeText={setTreatments}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </Field>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
-        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveText}>{isEditing ? 'Update Record' : 'Add Record'}</Text>}
-      </TouchableOpacity>
-    </ScrollView>
+            <Field label="Allergies" icon="alert-circle-outline">
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Known allergies..."
+                placeholderTextColor={C.outlineVariant}
+                value={allergies}
+                onChangeText={setAllergies}
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
+              />
+            </Field>
+          </View>
+
+          {/* Notes Section */}
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="chatbubble-ellipses-outline" size={15} color={C.primary} />
+              <Text style={styles.sectionTitle}>Doctor's Notes</Text>
+            </View>
+
+            <Field label="Notes" icon="create-outline">
+              <TextInput
+                style={[styles.input, styles.textAreaLarge]}
+                placeholder="Additional notes, observations..."
+                placeholderTextColor={C.outlineVariant}
+                value={doctorNotes}
+                onChangeText={setDoctorNotes}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </Field>
+          </View>
+
+          {/* Save Button */}
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.85}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name={isEditing ? 'save-outline' : 'add-circle-outline'} size={20} color="#fff" />
+                <Text style={styles.saveBtnText}>{isEditing ? 'Update Record' : 'Add Record'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#f3f4f6' },
-  header: { fontSize: 22, fontWeight: 'bold', color: '#1f2937', marginBottom: 20, textAlign: 'center' },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#374151', marginBottom: 5, marginTop: 12 },
-  input: { height: 50, borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 15, fontSize: 16, backgroundColor: '#fff', marginBottom: 5 },
-  textArea: { height: 80, textAlignVertical: 'top', paddingTop: 12 },
-  saveButton: { backgroundColor: '#10b981', height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 25, marginBottom: 40 },
-  saveText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  safe: { flex: 1, backgroundColor: C.emeraldDark },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 16 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(120,216,184,0.12)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 12, color: 'rgba(120,216,184,0.65)', marginTop: 2 },
+  headerIconBubble: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(120,216,184,0.12)', justifyContent: 'center', alignItems: 'center' },
+  scroll: { flex: 1, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 },
+  sectionBlock: { marginBottom: 24, gap: 16 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  sectionTitle: { fontSize: 13, fontWeight: '800', color: C.primary, letterSpacing: 0.5, textTransform: 'uppercase' },
+  field: { gap: 8 },
+  fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  fieldLabelText: { fontSize: 11, fontWeight: '800', color: C.onSurfaceVariant, letterSpacing: 0.6, textTransform: 'uppercase' },
+  input: { borderWidth: 1.5, borderColor: C.outlineVariant, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, color: C.onSurface, backgroundColor: C.surfaceLowest },
+  textArea: { height: 88, paddingTop: 12 },
+  textAreaLarge: { height: 110, paddingTop: 12 },
+  row: { flexDirection: 'row' },
+  saveBtn: { marginTop: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: C.primary, height: 60, borderRadius: 99, shadowColor: C.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.32, shadowRadius: 14, elevation: 8 },
+  saveBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
 });
 
 export default AddEditRecordScreen;

@@ -13,12 +13,13 @@ import MyBookingsScreen from '../screens/user/MyBookingsScreen';
 import MyOrdersScreen from '../screens/user/MyOrdersScreen';
 import EditProfileScreen from '../screens/user/EditProfileScreen';
 import EditPetScreen from '../screens/pet/EditPetScreen';
+import PetProfileScreen from '../screens/pet/PetProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
 const UserNavigator = () => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen 
         name="PetList" 
         component={PetListScreen} 
@@ -83,6 +84,11 @@ const UserNavigator = () => {
         name="EditPet" 
         component={EditPetScreen} 
         options={{ title: 'Edit Pet' }} 
+      />
+      <Stack.Screen 
+        name="PetProfile" 
+        component={PetProfileScreen} 
+        options={{ title: 'Pet Profile' }} 
       />
     </Stack.Navigator>
   );

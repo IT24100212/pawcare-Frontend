@@ -1,170 +1,254 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,
+  ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform, StatusBar,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import StarRating from '../../components/common/StarRating';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { submitFeedback } from '../../api/feedbackApi';
 
+const C = {
+  primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
+  primaryFixedDim: '#78d8b8', secondary: '#8e4e14', secondaryContainer: '#ffab69',
+  surface: '#faf9f8', surfaceHigh: '#e9e8e7', surfaceLow: '#f4f3f2',
+  surfaceLowest: '#ffffff', onSurface: '#1a1c1c', onSurfaceVariant: '#3e4944',
+  outline: '#6e7a74', outlineVariant: '#bdc9c3', emeraldDark: '#052E25',
+};
+
+const SERVICES = [
+  { key: 'Vet',      icon: 'medical-services', label: 'Vet' },
+  { key: 'Grooming', icon: 'content-cut',       label: 'Grooming' },
+  { key: 'Boarding', icon: 'home-filled',        label: 'Boarding' },
+  { key: 'PetShop',  icon: 'store',             label: 'Pet Shop' },
+];
+
+const RATING_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
+
 const SubmitFeedbackScreen = () => {
+  const navigation = useNavigation();
   const [serviceType, setServiceType] = useState('Vet');
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
-  const navigation = useNavigation();
-
-  const services = ['Vet', 'Grooming', 'Boarding', 'PetShop'];
 
   const handleSubmit = async () => {
     if (!comment.trim()) {
-      Alert.alert('Validation Error', 'Please enter a comment for your feedback.');
+      Alert.alert('Missing Comment', 'Please write something about your experience.');
       return;
     }
-
     setSubmitting(true);
     try {
       await submitFeedback({ serviceType, rating, comment });
-      Alert.alert('Success', 'Thank you for your feedback!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+      Alert.alert('🎉 Thank you!', 'Your feedback has been submitted.', [
+        { text: 'Done', onPress: () => navigation.goBack() },
       ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to submit feedback.');
+    } catch {
+      Alert.alert('Error', 'Failed to submit feedback. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.header}>Leave Your Feedback</Text>
-        
-        <Text style={styles.label}>Service Received</Text>
-        <View style={styles.servicesContainer}>
-          {services.map((svc) => (
-            <TouchableOpacity
-              key={svc}
-              style={[styles.serviceOption, serviceType === svc && styles.serviceOptionSelected]}
-              onPress={() => setServiceType(svc)}
-            >
-              <Text style={[styles.serviceText, serviceType === svc && styles.serviceTextSelected]}>
-                {svc}
-              </Text>
-            </TouchableOpacity>
-          ))}
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.emeraldDark} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color="rgba(236,253,245,0.85)" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>Leave a Review</Text>
+            <Text style={styles.headerSub}>Your experience matters to us</Text>
+          </View>
+          <View style={styles.headerAvatar}>
+            <MaterialIcons name="rate-review" size={20} color={C.primaryFixedDim} />
+          </View>
         </View>
 
-        <Text style={styles.label}>Your Rating</Text>
-        <View style={styles.ratingContainer}>
-          <StarRating rating={rating} onRatingChange={setRating} />
-        </View>
-
-        <Text style={styles.label}>Comment / Review</Text>
-        <TextInput
-          style={styles.input}
-          value={comment}
-          onChangeText={setComment}
-          placeholder="Share your experience with us..."
-          multiline
-          numberOfLines={6}
-          textAlignVertical="top"
-        />
-
-        <TouchableOpacity 
-          style={styles.submitButton}
-          onPress={handleSubmit}
-          disabled={submitting}
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {submitting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.submitButtonText}>Submit Feedback</Text>
-          )}
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Service Selector */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="grid-outline" size={15} color={C.primary} />
+              <Text style={styles.sectionLabel}>SERVICE RECEIVED</Text>
+            </View>
+            <View style={styles.serviceGrid}>
+              {SERVICES.map(svc => {
+                const active = serviceType === svc.key;
+                return (
+                  <TouchableOpacity
+                    key={svc.key}
+                    style={[styles.serviceChip, active && styles.serviceChipActive]}
+                    onPress={() => setServiceType(svc.key)}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[styles.serviceIcon, active && styles.serviceIconActive]}>
+                      <MaterialIcons name={svc.icon} size={20} color={active ? '#fff' : C.outline} />
+                    </View>
+                    <Text style={[styles.serviceChipText, active && styles.serviceChipTextActive]}>
+                      {svc.label}
+                    </Text>
+                    {active && (
+                      <View style={styles.serviceCheckmark}>
+                        <Ionicons name="checkmark-circle" size={16} color={C.primary} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* Star Rating */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="star-outline" size={15} color={C.primary} />
+              <Text style={styles.sectionLabel}>YOUR RATING</Text>
+            </View>
+            <View style={styles.ratingCard}>
+              <Text style={styles.ratingLabel}>{RATING_LABELS[rating]}</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <TouchableOpacity key={i} onPress={() => setRating(i)} activeOpacity={0.7}>
+                    <Ionicons
+                      name={i <= rating ? 'star' : 'star-outline'}
+                      size={40}
+                      color={i <= rating ? '#f59e0b' : C.outlineVariant}
+                      style={styles.star}
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.ratingHint}>Tap a star to rate</Text>
+            </View>
+          </View>
+
+          {/* Comment */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="chatbubble-outline" size={15} color={C.primary} />
+              <Text style={styles.sectionLabel}>YOUR REVIEW</Text>
+            </View>
+            <View style={styles.commentCard}>
+              <TextInput
+                style={styles.commentInput}
+                value={comment}
+                onChangeText={setComment}
+                placeholder={`Tell us about your ${serviceType} experience…`}
+                placeholderTextColor={C.outlineVariant}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+              />
+              <Text style={styles.charCount}>{comment.length} chars</Text>
+            </View>
+          </View>
+
+          {/* Submit Button */}
+          <TouchableOpacity
+            style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
+            onPress={handleSubmit}
+            disabled={submitting}
+            activeOpacity={0.85}
+          >
+            {submitting ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name="send" size={18} color="#fff" />
+                <Text style={styles.submitBtnText}>Submit Feedback</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f3f4f6',
-  },
-  scrollContent: {
-    padding: 20,
-  },
+  safe: { flex: 1, backgroundColor: C.emeraldDark },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#1f2937',
-    textAlign: 'center',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 16,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginTop: 15,
-    marginBottom: 10,
-    color: '#374151',
+  backBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(120,216,184,0.12)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  servicesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  headerSub: { fontSize: 12, color: 'rgba(120,216,184,0.65)', textAlign: 'center', marginTop: 2 },
+  headerAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(120,216,184,0.12)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  serviceOption: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    marginBottom: 5,
+  scroll: { flex: 1, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 28, paddingBottom: 48 },
+
+  section: { marginBottom: 28 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  sectionLabel: { fontSize: 11, fontWeight: '800', color: C.primary, letterSpacing: 1.6, textTransform: 'uppercase' },
+
+  serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  serviceChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    paddingVertical: 10, paddingHorizontal: 14,
+    backgroundColor: C.surfaceLowest, borderRadius: 14,
+    borderWidth: 1.5, borderColor: C.outlineVariant,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  serviceOptionSelected: {
-    backgroundColor: '#3b82f6',
-    borderColor: '#3b82f6',
+  serviceChipActive: { borderColor: C.primary, backgroundColor: C.onPrimaryContainer },
+  serviceIcon: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: C.surfaceHigh, justifyContent: 'center', alignItems: 'center',
   },
-  serviceText: {
-    color: '#4b5563',
-    fontWeight: '600',
+  serviceIconActive: { backgroundColor: C.primary },
+  serviceChipText: { fontSize: 13, fontWeight: '600', color: C.onSurfaceVariant },
+  serviceChipTextActive: { color: C.primary, fontWeight: '800' },
+  serviceCheckmark: { marginLeft: 2 },
+
+  ratingCard: {
+    backgroundColor: C.surfaceLowest, borderRadius: 20, paddingVertical: 28,
+    alignItems: 'center', gap: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
   },
-  serviceTextSelected: {
-    color: '#fff',
+  ratingLabel: { fontSize: 20, fontWeight: '800', color: C.onSurface, minHeight: 28 },
+  starsRow: { flexDirection: 'row', gap: 6 },
+  star: { padding: 4 },
+  ratingHint: { fontSize: 12, color: C.outline, fontWeight: '500' },
+
+  commentCard: {
+    backgroundColor: C.surfaceLowest, borderRadius: 18,
+    borderWidth: 1.5, borderColor: C.outlineVariant,
+    overflow: 'hidden',
   },
-  ratingContainer: {
-    alignItems: 'center',
-    marginVertical: 10,
-    backgroundColor: '#fff',
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#d1d5db',
+  commentInput: {
+    padding: 16, fontSize: 15, color: C.onSurface,
+    minHeight: 140, textAlignVertical: 'top', lineHeight: 22,
   },
-  input: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#d1d5db',
-    borderRadius: 8,
-    padding: 15,
-    fontSize: 16,
-    minHeight: 120,
+  charCount: {
+    textAlign: 'right', fontSize: 11, color: C.outlineVariant,
+    fontWeight: '600', paddingHorizontal: 16, paddingBottom: 10,
   },
-  submitButton: {
-    backgroundColor: '#10b981',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 30,
+
+  submitBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    backgroundColor: C.primary, height: 60, borderRadius: 99,
+    shadowColor: C.primary, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.32, shadowRadius: 14, elevation: 8,
   },
-  submitButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  }
+  submitBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
 });
 
 export default SubmitFeedbackScreen;

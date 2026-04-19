@@ -1,9 +1,36 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  View, Text, TextInput, TouchableOpacity, Image, StyleSheet,
+  Alert, ActivityIndicator, ScrollView, StatusBar, KeyboardAvoidingView, Platform,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { addProduct, updateProduct } from '../../api/productApi';
 import { uploadImage } from '../../api/userApi';
+import { isPositiveNumber } from '../../utils/validators';
+
+const C = {
+  primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
+  primaryFixedDim: '#78d8b8', secondary: '#8e4e14',
+  surface: '#faf9f8', surfaceHigh: '#e9e8e7', surfaceLow: '#f4f3f2',
+  surfaceLowest: '#ffffff', onSurface: '#1a1c1c', onSurfaceVariant: '#3e4944',
+  outline: '#6e7a74', outlineVariant: '#bdc9c3', emeraldDark: '#052E25',
+  errorContainer: '#ffdad6', error: '#ba1a1a',
+};
+
+const CATEGORIES = ['Food', 'Toys', 'Accessories', 'Medicine', 'Grooming', 'Other'];
+
+const Field = ({ label, icon, children }) => (
+  <View style={styles.field}>
+    <View style={styles.fieldLabel}>
+      <Ionicons name={icon} size={14} color={C.primary} />
+      <Text style={styles.fieldLabelText}>{label}</Text>
+    </View>
+    {children}
+  </View>
+);
 
 const AddEditProductScreen = () => {
   const navigation = useNavigation();
@@ -26,7 +53,6 @@ const AddEditProductScreen = () => {
       aspect: [4, 3],
       quality: 0.7,
     });
-
     if (!result.canceled && result.assets[0]) {
       setUploading(true);
       try {
@@ -37,7 +63,7 @@ const AddEditProductScreen = () => {
         formData.append('image', { uri, name: filename, type: `image/${ext}` });
         const uploadResult = await uploadImage(formData);
         setImageUrl(uploadResult.imageUrl);
-      } catch (error) {
+      } catch {
         Alert.alert('Error', 'Failed to upload image');
       } finally {
         setUploading(false);
@@ -46,27 +72,27 @@ const AddEditProductScreen = () => {
   };
 
   const handleSave = async () => {
-    if (!name || !category || !price || !stock) {
-      Alert.alert('Error', 'Name, category, price, and stock are required');
+    if (!name.trim() || !category || !price || !stock) {
+      Alert.alert('Missing Fields', 'Please fill in all required fields.');
       return;
     }
-
+    if (!isPositiveNumber(price)) {
+      Alert.alert('Invalid Price', 'Price must be a positive number.');
+      return;
+    }
+    if (!isPositiveNumber(stock)) {
+      Alert.alert('Invalid Stock', 'Stock must be a valid positive number.');
+      return;
+    }
     setSaving(true);
     try {
-      const productData = {
-        name,
-        category,
-        price: Number(price),
-        stock: Number(stock),
-        imageUrl,
-      };
-
+      const productData = { name: name.trim(), category, price: Number(price), stock: Number(stock), imageUrl };
       if (isEditing) {
         await updateProduct(existingProduct._id, productData);
-        Alert.alert('Success', 'Product updated!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+        Alert.alert('✅ Updated', 'Product updated successfully!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
       } else {
         await addProduct(productData);
-        Alert.alert('Success', 'Product added!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
+        Alert.alert('✅ Added', 'Product added successfully!', [{ text: 'OK', onPress: () => navigation.goBack() }]);
       }
     } catch (error) {
       Alert.alert('Error', error?.response?.data?.message || 'Failed to save product');
@@ -76,51 +102,170 @@ const AddEditProductScreen = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>{isEditing ? 'Edit Product' : 'Add New Product'}</Text>
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar barStyle="light-content" backgroundColor={C.emeraldDark} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
 
-      <TouchableOpacity onPress={handlePickImage} style={styles.imageContainer}>
-        {uploading ? (
-          <ActivityIndicator size="large" color="#3b82f6" />
-        ) : imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.productImage} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Text style={styles.imagePlaceholderText}>📷 Tap to add product photo</Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color="rgba(236,253,245,0.85)" />
+          </TouchableOpacity>
+          <View>
+            <Text style={styles.headerTitle}>{isEditing ? 'Edit Product' : 'New Product'}</Text>
+            <Text style={styles.headerSub}>{isEditing ? 'Update product details' : 'Add to your inventory'}</Text>
           </View>
-        )}
-      </TouchableOpacity>
+          <View style={{ width: 40 }} />
+        </View>
 
-      <Text style={styles.label}>Product Name</Text>
-      <TextInput style={styles.input} placeholder="e.g. Premium Dog Food" value={name} onChangeText={setName} />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Image Picker */}
+          <TouchableOpacity style={styles.imagePicker} onPress={handlePickImage} activeOpacity={0.85}>
+            {uploading ? (
+              <View style={styles.imageUploading}>
+                <ActivityIndicator size="large" color={C.primary} />
+                <Text style={styles.uploadingText}>Uploading…</Text>
+              </View>
+            ) : imageUrl ? (
+              <>
+                <Image source={{ uri: imageUrl }} style={styles.previewImage} />
+                <View style={styles.changeOverlay}>
+                  <Ionicons name="camera" size={20} color="#fff" />
+                  <Text style={styles.changeOverlayText}>Change Photo</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <View style={styles.imagePlaceholderIcon}>
+                  <Ionicons name="camera-outline" size={32} color={C.primary} />
+                </View>
+                <Text style={styles.imagePlaceholderTitle}>Add Product Photo</Text>
+                <Text style={styles.imagePlaceholderSub}>Tap to browse your gallery</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-      <Text style={styles.label}>Category</Text>
-      <TextInput style={styles.input} placeholder="e.g. Food, Toys, Accessories" value={category} onChangeText={setCategory} />
+          {/* Form Fields */}
+          <View style={styles.form}>
+            <Field label="Product Name" icon="pricetag-outline">
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Premium Dog Food"
+                placeholderTextColor={C.outlineVariant}
+                value={name}
+                onChangeText={setName}
+              />
+            </Field>
 
-      <Text style={styles.label}>Price ($)</Text>
-      <TextInput style={styles.input} placeholder="e.g. 29.99" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
+            <Field label="Category" icon="grid-outline">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
+                {CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[styles.categoryChip, category === cat && styles.categoryChipActive]}
+                    onPress={() => setCategory(cat)}
+                  >
+                    <Text style={[styles.categoryChipText, category === cat && styles.categoryChipTextActive]}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              {/* Also allow manual entry */}
+              <TextInput
+                style={[styles.input, { marginTop: 10 }]}
+                placeholder="Or type custom category…"
+                placeholderTextColor={C.outlineVariant}
+                value={category}
+                onChangeText={setCategory}
+              />
+            </Field>
 
-      <Text style={styles.label}>Stock Quantity</Text>
-      <TextInput style={styles.input} placeholder="e.g. 50" value={stock} onChangeText={setStock} keyboardType="number-pad" />
+            <View style={styles.row}>
+              <View style={{ flex: 1 }}>
+                <Field label="Price ($)" icon="cash-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0.00"
+                    placeholderTextColor={C.outlineVariant}
+                    value={price}
+                    onChangeText={setPrice}
+                    keyboardType="decimal-pad"
+                  />
+                </Field>
+              </View>
+              <View style={{ width: 14 }} />
+              <View style={{ flex: 1 }}>
+                <Field label="Stock Qty" icon="cube-outline">
+                  <TextInput
+                    style={styles.input}
+                    placeholder="0"
+                    placeholderTextColor={C.outlineVariant}
+                    value={stock}
+                    onChangeText={setStock}
+                    keyboardType="number-pad"
+                  />
+                </Field>
+              </View>
+            </View>
+          </View>
 
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={saving}>
-        {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveButtonText}>{isEditing ? 'Update Product' : 'Add Product'}</Text>}
-      </TouchableOpacity>
-    </ScrollView>
+          {/* Save Button */}
+          <TouchableOpacity
+            style={[styles.saveBtn, saving && { opacity: 0.7 }]}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.85}
+          >
+            {saving ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Ionicons name={isEditing ? 'save-outline' : 'add-circle-outline'} size={20} color="#fff" />
+                <Text style={styles.saveBtnText}>{isEditing ? 'Update Product' : 'Add to Inventory'}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#f3f4f6' },
-  header: { fontSize: 24, fontWeight: 'bold', color: '#1f2937', marginBottom: 20, textAlign: 'center' },
-  imageContainer: { alignItems: 'center', marginBottom: 20 },
-  productImage: { width: '100%', height: 200, borderRadius: 8, resizeMode: 'cover' },
-  imagePlaceholder: { width: '100%', height: 150, borderRadius: 8, backgroundColor: '#e5e7eb', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#d1d5db', borderStyle: 'dashed' },
-  imagePlaceholderText: { color: '#6b7280', fontSize: 15 },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#374151', marginBottom: 5, marginTop: 10 },
-  input: { height: 50, borderWidth: 1, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 15, fontSize: 16, backgroundColor: '#fff', marginBottom: 10 },
-  saveButton: { backgroundColor: '#10b981', height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginTop: 20, marginBottom: 40 },
-  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  safe: { flex: 1, backgroundColor: C.emeraldDark },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 16 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(120,216,184,0.12)', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff', textAlign: 'center' },
+  headerSub: { fontSize: 12, color: 'rgba(120,216,184,0.65)', textAlign: 'center', marginTop: 2 },
+  scroll: { flex: 1, backgroundColor: C.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 48 },
+  imagePicker: { width: '100%', height: 200, borderRadius: 20, overflow: 'hidden', backgroundColor: C.surfaceHigh, marginBottom: 24 },
+  previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  changeOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 48, backgroundColor: 'rgba(0,0,0,0.45)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  changeOverlayText: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  imageUploading: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  uploadingText: { fontSize: 14, color: C.outline },
+  imagePlaceholder: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 2, borderColor: C.outlineVariant, borderStyle: 'dashed', borderRadius: 20 },
+  imagePlaceholderIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: C.primary + '14', justifyContent: 'center', alignItems: 'center' },
+  imagePlaceholderTitle: { fontSize: 16, fontWeight: '700', color: C.onSurface },
+  imagePlaceholderSub: { fontSize: 13, color: C.outline },
+  form: { gap: 20 },
+  field: { gap: 10 },
+  fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  fieldLabelText: { fontSize: 12, fontWeight: '800', color: C.primary, letterSpacing: 0.8, textTransform: 'uppercase' },
+  input: { height: 52, borderWidth: 1.5, borderColor: C.outlineVariant, borderRadius: 14, paddingHorizontal: 16, fontSize: 15, color: C.onSurface, backgroundColor: C.surfaceLowest },
+  categoryRow: { gap: 8, paddingVertical: 2 },
+  categoryChip: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 99, backgroundColor: C.surfaceHigh, borderWidth: 1.5, borderColor: 'transparent' },
+  categoryChipActive: { backgroundColor: C.primary + '14', borderColor: C.primary },
+  categoryChipText: { fontSize: 13, fontWeight: '600', color: C.outline },
+  categoryChipTextActive: { color: C.primary, fontWeight: '800' },
+  row: { flexDirection: 'row' },
+  saveBtn: { marginTop: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: C.primary, height: 60, borderRadius: 99, shadowColor: C.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.32, shadowRadius: 14, elevation: 8 },
+  saveBtnText: { fontSize: 17, fontWeight: '800', color: '#fff' },
 });
 
 export default AddEditProductScreen;

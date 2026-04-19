@@ -8,7 +8,7 @@ const Stack = createNativeStackNavigator();
 
 const ShopOwnerNavigator = () => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen 
         name="ManageProducts" 
         component={ManageProductsScreen} 

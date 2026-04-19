@@ -7,6 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../context/AuthContext';
+import { isValidEmail } from '../../utils/validators';
 
 const C = {
   primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
@@ -28,6 +29,10 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Missing Fields', 'Please enter both email and password.');
+      return;
+    }
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
       return;
     }
     setLoading(true);

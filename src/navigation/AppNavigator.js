@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { View, Text, StyleSheet, Button, ActivityIndicator } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import UserNavigator from './UserNavigator';
@@ -29,6 +30,7 @@ const AppNavigator = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {user === null ? (
         <>
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} options={{ title: 'Create Account' }} />
         </>

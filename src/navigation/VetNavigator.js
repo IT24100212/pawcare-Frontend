@@ -8,7 +8,7 @@ const Stack = createNativeStackNavigator();
 
 const VetNavigator = () => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen 
         name="VetDashboard" 
         component={VetDashboardScreen} 

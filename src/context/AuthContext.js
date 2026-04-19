@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { login as loginApi } from '../api/authApi';
+import { login as loginApi, register as registerApi } from '../api/authApi';
 
 export const AuthContext = createContext();
 
@@ -45,6 +45,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const registerUser = async (name, email, password, role, phone) => {
+    try {
+      const data = await registerApi(name, email, password, role, phone);
+      await SecureStore.setItemAsync('userToken', data.token);
+      
+      const userData = {
+        _id: data._id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+      };
+      
+      await SecureStore.setItemAsync('userData', JSON.stringify(userData));
+      setUser(userData);
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   const logoutUser = async () => {
     try {
       await SecureStore.deleteItemAsync('userToken');
@@ -56,7 +76,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, loginUser, logoutUser }}>
+    <AuthContext.Provider value={{ user, isLoading, loginUser, logoutUser, registerUser }}>
       {children}
     </AuthContext.Provider>
   );

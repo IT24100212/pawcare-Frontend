@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { AuthContext } from '../../context/AuthContext';
+import { isValidEmail, isValidPassword, isValidPhone } from '../../utils/validators';
 
 const C = {
   primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
@@ -16,13 +17,7 @@ const C = {
   outline: '#6e7a74', outlineVariant: '#bdc9c3', emeraldDark: '#052E25',
 };
 
-const ROLES = [
-  { value: 'user', label: 'Pet Parent', desc: 'Book services & manage your pets', icon: 'pets' },
-  { value: 'vet', label: 'Veterinarian', desc: 'Manage vet appointments', icon: 'medical-services' },
-  { value: 'groomer', label: 'Groomer', desc: 'Manage grooming schedules', icon: 'content-cut' },
-  { value: 'sitter', label: 'Pet Sitter', desc: 'Manage boarding bookings', icon: 'home' },
-  { value: 'shopOwner', label: 'Shop Manager', desc: 'Manage pet store products', icon: 'store' },
-];
+
 
 const RegisterScreen = () => {
   const insets = useSafeAreaInsets();
@@ -30,7 +25,6 @@ const RegisterScreen = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('user');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
@@ -41,9 +35,21 @@ const RegisterScreen = () => {
       Alert.alert('Missing Fields', 'Please fill in name, email, and password.');
       return;
     }
+    if (!isValidEmail(email)) {
+      Alert.alert('Invalid Email', 'Please enter a valid email address.');
+      return;
+    }
+    if (!isValidPassword(password)) {
+      Alert.alert('Weak Password', 'Password must be at least 6 characters long.');
+      return;
+    }
+    if (phone.trim() && !isValidPhone(phone)) {
+      Alert.alert('Invalid Phone', 'Please enter a valid phone number or leave it blank.');
+      return;
+    }
     setLoading(true);
     try {
-      await registerUser(name.trim(), email.trim().toLowerCase(), password, role, phone.trim());
+      await registerUser(name.trim(), email.trim().toLowerCase(), password, 'User', phone.trim());
     } catch (e) {
       Alert.alert('Registration Failed', e?.response?.data?.message || 'Please try again.');
     } finally { setLoading(false); }
@@ -59,7 +65,7 @@ const RegisterScreen = () => {
           <MaterialIcons name="arrow-back" size={22} color="rgba(236,253,245,0.85)" />
         </TouchableOpacity>
         <Text style={styles.heroTitle}>Create Account</Text>
-        <Text style={styles.heroSub}>Join thousands of thoughtful pet parents</Text>
+        <Text style={styles.heroSub}>Create your Pet Parent account to get started 🐾</Text>
       </View>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -101,25 +107,15 @@ const RegisterScreen = () => {
             </View>
           </View>
 
-          <View style={styles.roleSection}>
-            <Text style={styles.inputLabel}>I am a...</Text>
-            {ROLES.map(r => (
-              <TouchableOpacity
-                key={r.value}
-                style={[styles.roleCard, role === r.value && styles.roleCardActive]}
-                onPress={() => setRole(r.value)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.roleIconBox, role === r.value && styles.roleIconBoxActive]}>
-                  <MaterialIcons name={r.icon} size={20} color={role === r.value ? '#fff' : C.outline} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.roleLabel, role === r.value && styles.roleLabelActive]}>{r.label}</Text>
-                  <Text style={styles.roleDesc}>{r.desc}</Text>
-                </View>
-                {role === r.value && <MaterialIcons name="check-circle" size={20} color={C.primary} />}
-              </TouchableOpacity>
-            ))}
+          {/* Pet Parent notice */}
+          <View style={styles.noticeCard}>
+            <View style={styles.noticeIconBox}>
+              <MaterialIcons name="pets" size={20} color={C.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.noticeTitle}>Pet Parent Account</Text>
+              <Text style={styles.noticeDesc}>This registration is for pet owners only. Service providers (vets, groomers, sitters, shop managers) are created by an administrator.</Text>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -161,14 +157,10 @@ const styles = StyleSheet.create({
   optional: { fontWeight: '400', color: C.outline },
   inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.surfaceHigh, borderRadius: 14, paddingHorizontal: 16, height: 54 },
   input: { flex: 1, fontSize: 15, color: C.onSurface },
-  roleSection: { marginBottom: 24, gap: 10 },
-  roleCard: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: C.surfaceHigh, borderRadius: 14, padding: 14, borderWidth: 2, borderColor: 'transparent' },
-  roleCardActive: { backgroundColor: C.onPrimaryContainer, borderColor: C.primary },
-  roleIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.surfaceLowest, justifyContent: 'center', alignItems: 'center' },
-  roleIconBoxActive: { backgroundColor: C.primary },
-  roleLabel: { fontSize: 14, fontWeight: '700', color: C.onSurface, marginBottom: 2 },
-  roleLabelActive: { color: C.primary },
-  roleDesc: { fontSize: 12, color: C.outline },
+  noticeCard: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, backgroundColor: C.onPrimaryContainer, borderRadius: 14, padding: 16, marginBottom: 24, borderWidth: 1.5, borderColor: C.primaryFixedDim },
+  noticeIconBox: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', flexShrink: 0 },
+  noticeTitle: { fontSize: 14, fontWeight: '700', color: C.primary, marginBottom: 4 },
+  noticeDesc: { fontSize: 12, color: C.onSurfaceVariant, lineHeight: 18 },
   registerBtn: { backgroundColor: C.primary, height: 58, borderRadius: 29, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 16, shadowColor: C.primary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 8 },
   registerBtnText: { color: '#fff', fontSize: 17, fontWeight: '800' },
   loginRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
