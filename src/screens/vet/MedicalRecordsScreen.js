@@ -27,7 +27,7 @@ const MedicalRecordsScreen = () => {
   const [loading, setLoading] = useState(true);
   const route = useRoute();
   const navigation = useNavigation();
-  const { petId, petName } = route.params;
+  const { petId, petName, pet } = route.params;
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -146,6 +146,19 @@ const MedicalRecordsScreen = () => {
         </View>
       </View>
 
+      {/* Pet Notes Banner — user-entered medical notes visible to vet */}
+      {pet?.medicalNotes ? (
+        <View style={styles.notesBanner}>
+          <View style={styles.notesBannerIcon}>
+            <Ionicons name="alert-circle" size={18} color="#d97706" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.notesBannerLabel}>Owner's Notes & Allergies</Text>
+            <Text style={styles.notesBannerText}>{pet.medicalNotes}</Text>
+          </View>
+        </View>
+      ) : null}
+
       {/* Summary */}
       <View style={styles.summaryBar}>
         <MaterialIcons name="folder-shared" size={16} color="rgba(120,216,184,0.75)" />
@@ -193,6 +206,14 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff', letterSpacing: -0.5 },
   petInitialBubble: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(120,216,184,0.18)', justifyContent: 'center', alignItems: 'center' },
   petInitialText: { fontSize: 18, fontWeight: '800', color: C.primaryFixedDim },
+  notesBanner: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: '#fffbeb', borderLeftWidth: 4, borderLeftColor: '#f59e0b',
+    marginHorizontal: 18, marginBottom: 8, padding: 14, borderRadius: 12,
+  },
+  notesBannerIcon: { marginTop: 1 },
+  notesBannerLabel: { fontSize: 11, fontWeight: '800', color: '#92400e', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
+  notesBannerText: { fontSize: 13, color: '#78350f', lineHeight: 20 },
   summaryBar: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'rgba(120,216,184,0.08)', marginHorizontal: 22, marginBottom: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12 },
   summaryText: { fontSize: 13, color: 'rgba(120,216,184,0.75)', fontWeight: '600' },
   list: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 110, backgroundColor: C.surface },

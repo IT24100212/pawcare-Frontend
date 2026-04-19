@@ -110,7 +110,11 @@ const VetDashboardScreen = () => {
           <View style={styles.recordsRow}>
             <TouchableOpacity
               style={styles.recordsBtn}
-              onPress={() => navigation.navigate('MedicalRecords', { petId: item.petId._id, petName: item.petId.name })}
+              onPress={() => navigation.navigate('MedicalRecords', {
+                petId: item.petId._id,
+                petName: item.petId.name,
+                pet: item.petId,
+              })}
             >
               <Ionicons name="document-text-outline" size={14} color={C.primary} />
               <Text style={styles.recordsBtnText}>Medical Records</Text>
