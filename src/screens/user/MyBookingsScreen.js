@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert,
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  ActivityIndicator, Alert, StatusBar,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
@@ -20,25 +20,27 @@ const C = {
 };
 
 const SERVICE_META = {
-  Vet: { icon: 'medical-services', color: '#006850', bg: 'rgba(0,104,80,0.1)' },
-  Grooming: { icon: 'content-cut', color: '#8e4e14', bg: 'rgba(142,78,20,0.1)' },
-  Boarding: { icon: 'home', color: '#1e7a6e', bg: 'rgba(30,122,110,0.1)' },
+  Vet:      { icon: 'medical-services',  color: '#006850', bg: 'rgba(0,104,80,0.08)',   label: 'Vet Appointments' },
+  Grooming: { icon: 'content-cut',       color: '#8e4e14', bg: 'rgba(142,78,20,0.08)', label: 'Grooming Sessions' },
+  Boarding: { icon: 'home',              color: '#1e7a6e', bg: 'rgba(30,122,110,0.08)', label: 'Boarding Stays' },
 };
 
 const STATUS_META = {
-  Approved: { color: '#065f46', bg: '#d1fae5', label: 'Approved' },
-  Pending: { color: '#78350f', bg: '#fef3c7', label: 'Pending' },
-  Rejected: { color: '#410002', bg: '#ffdad6', label: 'Rejected' },
+  Approved:  { color: '#065f46', bg: '#d1fae5', label: 'Approved' },
+  Pending:   { color: '#78350f', bg: '#fef3c7', label: 'Pending' },
+  Rejected:  { color: '#410002', bg: '#ffdad6', label: 'Rejected' },
   Cancelled: { color: '#410002', bg: '#ffdad6', label: 'Cancelled' },
 };
 
 const TABS = ['Active', 'Cancelled'];
+const SERVICES = ['Vet', 'Grooming', 'Boarding'];
 
 const MyBookingsScreen = () => {
   const insets = useSafeAreaInsets();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Active');
+  const [expandedSections, setExpandedSections] = useState({ Vet: true, Grooming: true, Boarding: true });
   const isFocused = useIsFocused();
   const navigation = useNavigation();
 
@@ -55,7 +57,6 @@ const MyBookingsScreen = () => {
   useEffect(() => { if (isFocused) fetchBookings(); }, [isFocused]);
 
   const handleCancel = (booking) => {
-    // Only block if explicitly marked as instant slot
     if (booking.isInstantSlot === true) {
       Alert.alert('Cannot Cancel', 'Instant slot bookings cannot be cancelled as another patient may need urgent care.');
       return;
@@ -79,61 +80,115 @@ const MyBookingsScreen = () => {
     ]);
   };
 
+  const toggleSection = (service) => {
+    setExpandedSections(prev => ({ ...prev, [service]: !prev[service] }));
+  };
+
   const filteredBookings = bookings.filter(b => {
     const done = b.status === 'Cancelled' || b.status === 'Rejected';
     return activeTab === 'Cancelled' ? done : !done;
   });
 
-  const renderItem = ({ item }) => {
-    const meta = SERVICE_META[item.serviceType] || SERVICE_META.Vet;
+  const getServiceBookings = (service) =>
+    filteredBookings.filter(b => b.serviceType === service);
+
+  const totalActive = bookings.filter(b => b.status !== 'Cancelled' && b.status !== 'Rejected').length;
+  const totalCancelled = bookings.filter(b => b.status === 'Cancelled' || b.status === 'Rejected').length;
+
+  const renderBookingCard = (item) => {
     const statusMeta = STATUS_META[item.status] || { color: C.outline, bg: C.surfaceHigh, label: item.status };
     const date = item.appointmentDate
       ? new Date(item.appointmentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
       : 'N/A';
-    // Only truly flagged instant slots block cancellation
     const isActualInstantSlot = item.isInstantSlot === true;
-    // Can cancel only if Pending and NOT an instant slot
     const canCancel = item.status === 'Pending' && !isActualInstantSlot;
 
     return (
-      <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.serviceIconBox, { backgroundColor: meta.bg }]}>
-            <MaterialIcons name={meta.icon} size={22} color={meta.color} />
+      <View key={item._id} style={styles.card}>
+        {/* Card top row */}
+        <View style={styles.cardTop}>
+          <View style={styles.cardDateSection}>
+            <Text style={styles.cardDateDay}>
+              {item.appointmentDate ? new Date(item.appointmentDate).getDate() : '--'}
+            </Text>
+            <Text style={styles.cardDateMonth}>
+              {item.appointmentDate
+                ? new Date(item.appointmentDate).toLocaleString('default', { month: 'short' }).toUpperCase()
+                : '---'}
+            </Text>
           </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.serviceType}>{item.serviceType} Appointment</Text>
-            <Text style={styles.dateText}>{date} · {item.timeSlot || 'N/A'}</Text>
+          <View style={styles.cardMainInfo}>
+            <Text style={styles.cardTime}>{item.timeSlot || 'Time N/A'}</Text>
+            {item.petId?.name && (
+              <View style={styles.petPill}>
+                <Ionicons name="paw" size={11} color={C.primary} />
+                <Text style={styles.petPillText}>{item.petId.name}</Text>
+              </View>
+            )}
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusMeta.bg }]}>
             <Text style={[styles.statusText, { color: statusMeta.color }]}>{statusMeta.label}</Text>
           </View>
         </View>
 
-        {item.petId?.name && (
-          <View style={styles.petRow}>
-            <MaterialIcons name="pets" size={14} color={C.outline} />
-            <Text style={styles.petName}>{item.petId.name}</Text>
-          </View>
-        )}
-
-        {/* Only show instant slot warning if it's genuinely an instant slot AND pending */}
+        {/* Instant slot warning */}
         {isActualInstantSlot && item.status === 'Pending' && (
-          <View style={styles.instantBadge}>
+          <View style={styles.instantBar}>
             <Ionicons name="flash" size={12} color={C.secondary} />
-            <Text style={styles.instantText}>Instant slot — cannot be cancelled</Text>
+            <Text style={styles.instantBarText}>Instant slot — cannot be cancelled</Text>
           </View>
         )}
 
-        {/* Show cancel button only for Pending non-instant bookings */}
+        {/* Cancel */}
         {canCancel && (
-          <View style={styles.cardFooter}>
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={() => handleCancel(item)}
-            >
-              <Text style={styles.cancelBtnText}>Cancel Booking</Text>
-            </TouchableOpacity>
+          <TouchableOpacity style={styles.cancelBtn} onPress={() => handleCancel(item)}>
+            <Ionicons name="close-circle-outline" size={15} color={C.error} />
+            <Text style={styles.cancelBtnText}>Cancel Booking</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
+  const renderSection = (service) => {
+    const meta = SERVICE_META[service];
+    const serviceBookings = getServiceBookings(service);
+    const isExpanded = expandedSections[service];
+
+    return (
+      <View key={service} style={styles.section}>
+        {/* Section Header */}
+        <TouchableOpacity
+          style={[styles.sectionHeader, { borderLeftColor: meta.color }]}
+          onPress={() => toggleSection(service)}
+          activeOpacity={0.8}
+        >
+          <View style={[styles.sectionIconBox, { backgroundColor: meta.bg }]}>
+            <MaterialIcons name={meta.icon} size={20} color={meta.color} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sectionLabel}>{meta.label}</Text>
+            <Text style={styles.sectionCount}>
+              {serviceBookings.length} {serviceBookings.length === 1 ? 'booking' : 'bookings'}
+            </Text>
+          </View>
+          <Ionicons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={20}
+            color={C.outline}
+          />
+        </TouchableOpacity>
+
+        {/* Booking Cards */}
+        {isExpanded && (
+          <View style={styles.sectionBody}>
+            {serviceBookings.length === 0 ? (
+              <View style={styles.sectionEmpty}>
+                <Text style={styles.sectionEmptyText}>No {activeTab.toLowerCase()} {service.toLowerCase()} bookings</Text>
+              </View>
+            ) : (
+              serviceBookings.map(renderBookingCard)
+            )}
           </View>
         )}
       </View>
@@ -142,12 +197,18 @@ const MyBookingsScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
+
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
             <MaterialIcons name="arrow-back" size={24} color={C.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>My Bookings</Text>
+          <View>
+            <Text style={styles.headerTitle}>My Bookings</Text>
+            <Text style={styles.headerSub}>{totalActive} active · {totalCancelled} cancelled</Text>
+          </View>
         </View>
         <MaterialIcons name="calendar-today" size={22} color={C.primary} />
       </View>
@@ -161,34 +222,41 @@ const MyBookingsScreen = () => {
             onPress={() => setActiveTab(tab)}
           >
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+            <View style={[styles.tabCount, activeTab === tab && styles.tabCountActive]}>
+              <Text style={[styles.tabCountText, activeTab === tab && styles.tabCountTextActive]}>
+                {tab === 'Active' ? totalActive : totalCancelled}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </View>
 
-      <FlatList
-        data={filteredBookings}
-        keyExtractor={(item) => item._id?.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          loading ? <ActivityIndicator color={C.primary} style={{ marginTop: 50 }} /> : (
-            <View style={styles.empty}>
-              <View style={styles.emptyIcon}>
-                <MaterialIcons name="event-busy" size={48} color={C.outlineVariant} />
-              </View>
-              <Text style={styles.emptyTitle}>No {activeTab} Bookings</Text>
-              <Text style={styles.emptyDesc}>You have no {activeTab.toLowerCase()} appointments.</Text>
-              {activeTab === 'Active' && (
-                <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('PetList')}>
-                  <Text style={styles.emptyBtnText}>Book a Service</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )
-        }
-      />
+      {loading ? (
+        <ActivityIndicator color={C.primary} size="large" style={{ marginTop: 60 }} />
+      ) : filteredBookings.length === 0 ? (
+        <View style={styles.empty}>
+          <View style={styles.emptyIcon}>
+            <MaterialIcons name="event-busy" size={48} color={C.outlineVariant} />
+          </View>
+          <Text style={styles.emptyTitle}>No {activeTab} Bookings</Text>
+          <Text style={styles.emptyDesc}>You have no {activeTab.toLowerCase()} appointments.</Text>
+          {activeTab === 'Active' && (
+            <TouchableOpacity style={styles.emptyBtn} onPress={() => navigation.navigate('PetList')}>
+              <Text style={styles.emptyBtnText}>Book a Service</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 80, 100) }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {SERVICES.map(renderSection)}
+        </ScrollView>
+      )}
 
+      {/* Bottom Nav */}
       <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <TouchableOpacity style={styles.navItem} onPress={() => navigation.navigate('PetList')}>
           <MaterialIcons name="home" size={24} color="rgba(26,28,28,0.6)" />
@@ -213,52 +281,102 @@ const MyBookingsScreen = () => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.surface },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, backgroundColor: 'rgba(236,253,245,0.9)', borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 14,
+    backgroundColor: 'rgba(236,253,245,0.9)', borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 20, fontWeight: '700', color: C.primary },
-  tabsContainer: { flexDirection: 'row', backgroundColor: C.surfaceHigh, margin: 16, borderRadius: 12, padding: 4 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 10 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: C.primary },
+  headerSub: { fontSize: 12, color: C.outline, marginTop: 2 },
+
+  tabsContainer: {
+    flexDirection: 'row', backgroundColor: C.surfaceHigh,
+    margin: 16, borderRadius: 14, padding: 4, gap: 4,
+  },
+  tab: { flex: 1, flexDirection: 'row', paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 7, borderRadius: 10 },
   tabActive: { backgroundColor: C.surfaceLowest, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
   tabText: { fontSize: 14, fontWeight: '600', color: C.outline },
   tabTextActive: { color: C.primary, fontWeight: '800' },
-  list: { paddingHorizontal: 16, paddingBottom: 120, gap: 12 },
-  card: { backgroundColor: C.surfaceLowest, borderRadius: 16, padding: 16, shadowColor: C.onSurface, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 10, elevation: 2 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  serviceIconBox: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  serviceType: { fontSize: 15, fontWeight: '700', color: C.onSurface, marginBottom: 2 },
-  dateText: { fontSize: 13, color: C.outline },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  tabCount: { backgroundColor: C.outlineVariant, borderRadius: 99, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  tabCountActive: { backgroundColor: C.primary + '18' },
+  tabCountText: { fontSize: 10, fontWeight: '800', color: C.outline },
+  tabCountTextActive: { color: C.primary },
+
+  scroll: { flex: 1 },
+  scrollContent: { paddingHorizontal: 16, paddingTop: 4 },
+
+  section: { marginBottom: 12 },
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: C.surfaceLowest, borderRadius: 16, padding: 14,
+    borderLeftWidth: 4, shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2,
+  },
+  sectionIconBox: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  sectionLabel: { fontSize: 15, fontWeight: '800', color: C.onSurface },
+  sectionCount: { fontSize: 12, color: C.outline, marginTop: 2 },
+
+  sectionBody: { paddingTop: 8, paddingLeft: 4, gap: 8 },
+  sectionEmpty: { paddingVertical: 16, paddingHorizontal: 12, alignItems: 'center' },
+  sectionEmptyText: { fontSize: 13, color: C.outline, fontStyle: 'italic' },
+
+  card: {
+    backgroundColor: C.surfaceLowest, borderRadius: 14,
+    borderWidth: 1, borderColor: C.surfaceHigh,
+    overflow: 'hidden',
+  },
+  cardTop: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  cardDateSection: {
+    width: 46, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.primary + '0D', borderRadius: 12, paddingVertical: 8,
+  },
+  cardDateDay: { fontSize: 20, fontWeight: '800', color: C.primary },
+  cardDateMonth: { fontSize: 9, fontWeight: '700', color: C.primary, letterSpacing: 0.5 },
+  cardMainInfo: { flex: 1, gap: 6 },
+  cardTime: { fontSize: 15, fontWeight: '700', color: C.onSurface },
+  petPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.primary + '0D', alignSelf: 'flex-start',
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 99,
+  },
+  petPillText: { fontSize: 11, fontWeight: '700', color: C.primary },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
   statusText: { fontSize: 11, fontWeight: '800' },
-  petRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
-  petName: { fontSize: 13, color: C.onSurfaceVariant },
-  instantBadge: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff7ed', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 8 },
-  instantText: { fontSize: 12, color: C.secondary, fontWeight: '600' },
-  cardFooter: { borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.06)', paddingTop: 12, marginTop: 4 },
-  cancelBtn: { backgroundColor: C.errorContainer, paddingVertical: 10, borderRadius: 20, alignItems: 'center' },
-  cancelBtnDisabled: { backgroundColor: C.surfaceHigh },
+
+  instantBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#fff7ed', paddingHorizontal: 14, paddingVertical: 8,
+    borderTopWidth: 1, borderTopColor: '#fed7aa',
+  },
+  instantBarText: { fontSize: 12, color: C.secondary, fontWeight: '600' },
+
+  cancelBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: C.errorContainer, paddingVertical: 11,
+    borderTopWidth: 1, borderTopColor: 'rgba(186,26,26,0.12)',
+  },
   cancelBtnText: { color: C.onErrorContainer, fontWeight: '700', fontSize: 13 },
-  empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
+
+  empty: { flex: 1, alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: C.surfaceHigh, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: C.onSurface, marginBottom: 8 },
   emptyDesc: { fontSize: 14, color: C.outline, textAlign: 'center', marginBottom: 20 },
   emptyBtn: { backgroundColor: C.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 28 },
   emptyBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+
   bottomNav: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
-    paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.8)',
+    paddingTop: 12, backgroundColor: 'rgba(255,255,255,0.9)',
     borderTopLeftRadius: 48, borderTopRightRadius: 48,
     shadowColor: 'rgba(26,28,28,0.06)', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 1, shadowRadius: 40, elevation: 20,
   },
   navItem: { alignItems: 'center', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 99 },
-  navItemActive: {
-    alignItems: 'center', backgroundColor: 'rgba(142,78,20,0.1)',
-    paddingHorizontal: 20, paddingVertical: 8, borderRadius: 99,
-  },
+  navItemActive: { alignItems: 'center', backgroundColor: 'rgba(142,78,20,0.1)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 99 },
   navText: { fontSize: 11, fontWeight: '500', color: 'rgba(26,28,28,0.6)', marginTop: 4 },
   navTextActive: { fontSize: 11, fontWeight: '600', color: C.secondary, marginTop: 4 },
 });
 
 export default MyBookingsScreen;
-
