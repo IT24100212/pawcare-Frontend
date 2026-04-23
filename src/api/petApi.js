@@ -1,4 +1,5 @@
 import axiosInstance from './axiosInstance';
+import * as SecureStore from 'expo-secure-store';
 
 export const getPets = async () => {
   const response = await axiosInstance.get('/pets');
@@ -33,8 +34,21 @@ export const uploadImage = async (imageUri) => {
     type: 'image/jpeg',
   });
   
-  const response = await axiosInstance.post('/upload/image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+  const token = await SecureStore.getItemAsync('userToken');
+  const response = await fetch(`${axiosInstance.defaults.baseURL}/upload/image`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      // Fetch will automatically set the Content-Type with the correct boundary
+    },
   });
-  return response.data.imageUrl;
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Upload failed: ${errorData}`);
+  }
+
+  const data = await response.json();
+  return data.imageUrl;
 };
