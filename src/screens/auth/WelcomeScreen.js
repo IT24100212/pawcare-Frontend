@@ -26,12 +26,7 @@ const WelcomeScreen = () => {
       {/* Bottom Content Section */}
       <View style={styles.bottomSection}>
         
-        {/* Pagination Dots */}
-        <View style={styles.paginationContainer}>
-          <View style={[styles.dot, styles.dotInactive]} />
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={[styles.dot, styles.dotInactive]} />
-        </View>
+        {/* Removed Pagination Dots as there is no swipe functionality */}
 
         {/* Text Content */}
         <View style={styles.textContainer}>
@@ -84,25 +79,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingTop: 30,
     paddingBottom: Platform.OS === 'ios' ? 40 : 30,
-  },
-  paginationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  dot: {
-    height: 10,
-    borderRadius: 5,
-    marginHorizontal: 5,
-  },
-  dotInactive: {
-    width: 10,
-    backgroundColor: '#fed7aa', // orange-200
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: '#f6ab49',
   },
   textContainer: {
     flex: 1,
