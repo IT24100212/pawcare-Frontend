@@ -7,7 +7,7 @@ import RegisterScreen from '../screens/auth/RegisterScreen';
 import UserNavigator from './UserNavigator';
 import VetNavigator from './VetNavigator';
 import GroomerDashboardScreen from '../screens/staff/GroomerDashboardScreen';
-import SitterDashboardScreen from '../screens/staff/SitterDashboardScreen';
+import SitterNavigator from './SitterNavigator';
 import ShopOwnerNavigator from './ShopOwnerNavigator';
 import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
 import { AuthContext } from '../context/AuthContext';
@@ -46,9 +46,9 @@ const AppNavigator = () => {
         />
       ) : user.role === 'BoardingManager' ? (
         <Stack.Screen 
-          name="SitterDashboard" 
-          component={SitterDashboardScreen} 
-          options={{ title: 'Pet Sitter Dashboard', headerShown: false }} 
+          name="SitterRoot" 
+          component={SitterNavigator} 
+          options={{ headerShown: false }} 
         />
       ) : user.role === 'ShopOwner' ? (
         <Stack.Screen 

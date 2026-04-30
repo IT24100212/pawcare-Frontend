@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
   Rejected: { bg: '#fef2f2', text: '#991b1b', dot: '#ef4444' },
 };
 
-const SitterDashboardScreen = () => {
+const SitterDashboardScreen = ({ navigation }) => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Pending');
@@ -109,6 +109,15 @@ const SitterDashboardScreen = () => {
             <TouchableOpacity style={styles.approveBtn} onPress={() => handleStatusUpdate(item._id, 'Approved')}>
               <Ionicons name="checkmark" size={16} color="#fff" />
               <Text style={styles.approveBtnText}>Approve</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {item.status === 'Approved' && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity style={styles.updateBtn} onPress={() => navigation.navigate('BoardingUpdates', { booking: item })}>
+              <Ionicons name="camera-outline" size={16} color="#fff" />
+              <Text style={styles.updateBtnText}>Send Pawtocast</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -224,6 +233,8 @@ const styles = StyleSheet.create({
   rejectBtnText: { fontSize: 14, fontWeight: '700', color: C.error },
   approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 12, backgroundColor: C.primary, shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
   approveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  updateBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, backgroundColor: C.secondaryContainer },
+  updateBtnText: { fontSize: 14, fontWeight: '700', color: C.secondary },
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface, paddingBottom: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: C.onSurface, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: C.outline, marginTop: 6 },

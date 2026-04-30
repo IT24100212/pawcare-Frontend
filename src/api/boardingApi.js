@@ -24,3 +24,8 @@ export const getAllBoardingBookings = async () => {
   const response = await axiosInstance.get('/bookings/boarding');
   return response.data;
 };
+
+export const addBoardingUpdate = async (id, data) => {
+  const response = await axiosInstance.post(`/bookings/boarding/${id}/updates`, data);
+  return response.data;
+};

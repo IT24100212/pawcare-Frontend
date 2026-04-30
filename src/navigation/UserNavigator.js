@@ -14,6 +14,7 @@ import MyOrdersScreen from '../screens/user/MyOrdersScreen';
 import EditProfileScreen from '../screens/user/EditProfileScreen';
 import EditPetScreen from '../screens/pet/EditPetScreen';
 import PetProfileScreen from '../screens/pet/PetProfileScreen';
+import UserBoardingUpdatesScreen from '../screens/user/UserBoardingUpdatesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -89,6 +90,11 @@ const UserNavigator = () => {
         name="PetProfile" 
         component={PetProfileScreen} 
         options={{ title: 'Pet Profile' }} 
+      />
+      <Stack.Screen 
+        name="UserBoardingUpdates" 
+        component={UserBoardingUpdatesScreen} 
+        options={{ title: 'Daily Pawtocasts' }} 
       />
     </Stack.Navigator>
   );

@@ -146,6 +146,13 @@ const MyBookingsScreen = () => {
             <Text style={styles.cancelBtnText}>Cancel Booking</Text>
           </TouchableOpacity>
         )}
+
+        {item.serviceType === 'Boarding' && item.status === 'Approved' && (
+          <TouchableOpacity style={styles.updatesBtn} onPress={() => navigation.navigate('UserBoardingUpdates', { booking: item })}>
+            <Ionicons name="images-outline" size={15} color={C.primary} />
+            <Text style={styles.updatesBtnText}>View Pawtocasts</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -358,6 +365,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1, borderTopColor: 'rgba(186,26,26,0.12)',
   },
   cancelBtnText: { color: C.onErrorContainer, fontWeight: '700', fontSize: 13 },
+
+  updatesBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: C.primary + '18', paddingVertical: 11,
+    borderTopWidth: 1, borderTopColor: C.primary + '22',
+  },
+  updatesBtnText: { color: C.primary, fontWeight: '700', fontSize: 13 },
 
   empty: { flex: 1, alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyIcon: { width: 100, height: 100, borderRadius: 50, backgroundColor: C.surfaceHigh, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
