@@ -28,11 +28,13 @@ const SERVICE_META = {
 const STATUS_META = {
   Approved:  { color: '#065f46', bg: '#d1fae5', label: 'Approved' },
   Pending:   { color: '#78350f', bg: '#fef3c7', label: 'Pending' },
+  'Checked-In': { color: '#1d4ed8', bg: '#eff6ff', label: 'Checked-In' },
+  Completed: { color: '#374151', bg: '#f3f4f6', label: 'Completed' },
   Rejected:  { color: '#410002', bg: '#ffdad6', label: 'Rejected' },
   Cancelled: { color: '#410002', bg: '#ffdad6', label: 'Cancelled' },
 };
 
-const TABS = ['Active', 'Cancelled'];
+const TABS = ['Active', 'History'];
 const SERVICES = ['Vet', 'Grooming', 'Boarding'];
 
 const MyBookingsScreen = () => {
@@ -85,15 +87,15 @@ const MyBookingsScreen = () => {
   };
 
   const filteredBookings = bookings.filter(b => {
-    const done = b.status === 'Cancelled' || b.status === 'Rejected';
-    return activeTab === 'Cancelled' ? done : !done;
+    const done = b.status === 'Cancelled' || b.status === 'Rejected' || b.status === 'Completed';
+    return activeTab === 'History' ? done : !done;
   });
 
   const getServiceBookings = (service) =>
     filteredBookings.filter(b => b.serviceType === service);
 
-  const totalActive = bookings.filter(b => b.status !== 'Cancelled' && b.status !== 'Rejected').length;
-  const totalCancelled = bookings.filter(b => b.status === 'Cancelled' || b.status === 'Rejected').length;
+  const totalActive = bookings.filter(b => b.status !== 'Cancelled' && b.status !== 'Rejected' && b.status !== 'Completed').length;
+  const totalHistory = bookings.filter(b => b.status === 'Cancelled' || b.status === 'Rejected' || b.status === 'Completed').length;
 
   const renderBookingCard = (item) => {
     const statusMeta = STATUS_META[item.status] || { color: C.outline, bg: C.surfaceHigh, label: item.status };
@@ -147,7 +149,7 @@ const MyBookingsScreen = () => {
           </TouchableOpacity>
         )}
 
-        {item.serviceType === 'Boarding' && item.status === 'Approved' && (
+        {item.serviceType === 'Boarding' && ['Approved', 'Checked-In', 'Completed'].includes(item.status) && (
           <TouchableOpacity style={styles.updatesBtn} onPress={() => navigation.navigate('UserBoardingUpdates', { booking: item })}>
             <Ionicons name="images-outline" size={15} color={C.primary} />
             <Text style={styles.updatesBtnText}>View Pawtocasts</Text>
@@ -214,7 +216,7 @@ const MyBookingsScreen = () => {
           </TouchableOpacity>
           <View>
             <Text style={styles.headerTitle}>My Bookings</Text>
-            <Text style={styles.headerSub}>{totalActive} active · {totalCancelled} cancelled</Text>
+            <Text style={styles.headerSub}>{totalActive} active · {totalHistory} past</Text>
           </View>
         </View>
         <MaterialIcons name="calendar-today" size={22} color={C.primary} />
@@ -231,7 +233,7 @@ const MyBookingsScreen = () => {
             <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
             <View style={[styles.tabCount, activeTab === tab && styles.tabCountActive]}>
               <Text style={[styles.tabCountText, activeTab === tab && styles.tabCountTextActive]}>
-                {tab === 'Active' ? totalActive : totalCancelled}
+                {tab === 'Active' ? totalActive : totalHistory}
               </Text>
             </View>
           </TouchableOpacity>

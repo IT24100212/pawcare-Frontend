@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, StatusBar,
+  ActivityIndicator, Alert, StatusBar, Modal, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -17,11 +17,13 @@ const C = {
   errorContainer: '#ffdad6', error: '#ba1a1a',
 };
 
-const TABS = ['Pending', 'Approved', 'All'];
+const TABS = ['Pending', 'Approved', 'Checked-In', 'Completed', 'All'];
 
 const STATUS_CONFIG = {
   Pending:  { bg: '#fff8ed', text: '#92400e', dot: '#f59e0b' },
   Approved: { bg: '#ecfdf5', text: '#065f46', dot: '#10b981' },
+  'Checked-In': { bg: '#eff6ff', text: '#1d4ed8', dot: '#3b82f6' },
+  Completed: { bg: '#f3f4f6', text: '#374151', dot: '#6b7280' },
   Rejected: { bg: '#fef2f2', text: '#991b1b', dot: '#ef4444' },
 };
 
@@ -29,6 +31,7 @@ const SitterDashboardScreen = ({ navigation }) => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Pending');
+  const [receiptData, setReceiptData] = useState(null);
   const { logoutUser } = useContext(AuthContext);
 
   const fetchBookings = async () => {
@@ -55,10 +58,22 @@ const SitterDashboardScreen = ({ navigation }) => {
     }
   };
 
+  const handleCheckOut = async (item) => {
+    try {
+      await updateBookingStatus(item._id, 'Completed');
+      setReceiptData(item);
+      fetchBookings();
+    } catch (error) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to check out');
+    }
+  };
+
   const filtered = activeTab === 'All' ? bookings : bookings.filter(b => b.status === activeTab);
   const counts = {
     Pending: bookings.filter(b => b.status === 'Pending').length,
     Approved: bookings.filter(b => b.status === 'Approved').length,
+    'Checked-In': bookings.filter(b => b.status === 'Checked-In').length,
+    Completed: bookings.filter(b => b.status === 'Completed').length,
     All: bookings.length,
   };
 
@@ -115,9 +130,35 @@ const SitterDashboardScreen = ({ navigation }) => {
 
         {item.status === 'Approved' && (
           <View style={styles.cardActions}>
+            <TouchableOpacity style={styles.approveBtn} onPress={() => handleStatusUpdate(item._id, 'Checked-In')}>
+              <Ionicons name="log-in-outline" size={16} color="#fff" />
+              <Text style={styles.approveBtnText}>Check-In</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.updateBtn} onPress={() => navigation.navigate('BoardingUpdates', { booking: item })}>
-              <Ionicons name="camera-outline" size={16} color="#fff" />
-              <Text style={styles.updateBtnText}>Send Pawtocast</Text>
+              <Ionicons name="camera-outline" size={16} color={C.secondary} />
+              <Text style={styles.updateBtnText}>Pawtocast</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {item.status === 'Checked-In' && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity style={styles.approveBtn} onPress={() => handleCheckOut(item)}>
+              <Ionicons name="log-out-outline" size={16} color="#fff" />
+              <Text style={styles.approveBtnText}>Check-Out</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.updateBtn} onPress={() => navigation.navigate('BoardingUpdates', { booking: item })}>
+              <Ionicons name="camera-outline" size={16} color={C.secondary} />
+              <Text style={styles.updateBtnText}>Pawtocast</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {item.status === 'Completed' && (
+          <View style={styles.cardActions}>
+            <TouchableOpacity style={styles.updateBtn} onPress={() => navigation.navigate('BoardingUpdates', { booking: item })}>
+              <Ionicons name="images-outline" size={16} color={C.secondary} />
+              <Text style={styles.updateBtnText}>View Pawtocasts</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -147,11 +188,15 @@ const SitterDashboardScreen = ({ navigation }) => {
           <Text style={styles.statNum}>{counts.Pending}</Text>
           <Text style={styles.statLabel}>Pending</Text>
         </View>
-        <View style={[styles.statCard, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: 'rgba(120,216,184,0.15)' }]}>
+        <View style={[styles.statCard, { borderLeftWidth: 1, borderColor: 'rgba(120,216,184,0.15)' }]}>
           <Text style={styles.statNum}>{counts.Approved}</Text>
           <Text style={styles.statLabel}>Approved</Text>
         </View>
-        <View style={styles.statCard}>
+        <View style={[styles.statCard, { borderLeftWidth: 1, borderColor: 'rgba(120,216,184,0.15)' }]}>
+          <Text style={styles.statNum}>{counts['Checked-In']}</Text>
+          <Text style={styles.statLabel}>Checked-In</Text>
+        </View>
+        <View style={[styles.statCard, { borderLeftWidth: 1, borderColor: 'rgba(120,216,184,0.15)' }]}>
           <Text style={styles.statNum}>{counts.All}</Text>
           <Text style={styles.statLabel}>Total</Text>
         </View>
@@ -191,6 +236,51 @@ const SitterDashboardScreen = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Digital Receipt Modal */}
+      <Modal
+        visible={!!receiptData}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setReceiptData(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.receiptCard}>
+            <View style={styles.receiptHeader}>
+              <Ionicons name="checkmark-circle" size={48} color={C.primary} />
+              <Text style={styles.receiptTitle}>Check-Out Complete</Text>
+              <Text style={styles.receiptSubtitle}>Digital Summary Receipt</Text>
+            </View>
+
+            <View style={styles.receiptDivider} />
+
+            <View style={styles.receiptBody}>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Pet Name</Text>
+                <Text style={styles.receiptValue}>{receiptData?.petId?.name}</Text>
+              </View>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Owner Name</Text>
+                <Text style={styles.receiptValue}>{receiptData?.userId?.name}</Text>
+              </View>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Service</Text>
+                <Text style={styles.receiptValue}>{receiptData?.serviceType}</Text>
+              </View>
+              <View style={styles.receiptRow}>
+                <Text style={styles.receiptLabel}>Date</Text>
+                <Text style={styles.receiptValue}>
+                  {receiptData?.appointmentDate ? new Date(receiptData.appointmentDate).toLocaleDateString() : 'N/A'}
+                </Text>
+              </View>
+            </View>
+
+            <TouchableOpacity style={styles.receiptCloseBtn} onPress={() => setReceiptData(null)}>
+              <Text style={styles.receiptCloseBtnText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -238,6 +328,18 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface, paddingBottom: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: C.onSurface, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: C.outline, marginTop: 6 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  receiptCard: { backgroundColor: '#fff', borderRadius: 24, width: '100%', padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  receiptHeader: { alignItems: 'center', marginBottom: 20 },
+  receiptTitle: { fontSize: 22, fontWeight: '800', color: C.onSurface, marginTop: 12 },
+  receiptSubtitle: { fontSize: 14, color: C.outline, marginTop: 4 },
+  receiptDivider: { width: '100%', height: 1, backgroundColor: C.surfaceHigh, marginBottom: 20 },
+  receiptBody: { width: '100%', gap: 16, marginBottom: 32 },
+  receiptRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  receiptLabel: { fontSize: 14, color: C.outline, fontWeight: '500' },
+  receiptValue: { fontSize: 16, color: C.onSurface, fontWeight: '700' },
+  receiptCloseBtn: { backgroundColor: C.primary, width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  receiptCloseBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });
 
 export default SitterDashboardScreen;
