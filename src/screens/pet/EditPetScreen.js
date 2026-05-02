@@ -45,6 +45,10 @@ const EditPetScreen = () => {
   );
   const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [medicalNotes, setMedicalNotes] = useState(pet?.medicalNotes || '');
+  const [feedingScheduleAndAllergies, setFeedingScheduleAndAllergies] = useState(pet?.feedingScheduleAndAllergies || '');
+  const [behavioralQuirks, setBehavioralQuirks] = useState(pet?.behavioralQuirks || '');
+  const [emergencyVetName, setEmergencyVetName] = useState(pet?.emergencyVet?.name || '');
+  const [emergencyVetPhone, setEmergencyVetPhone] = useState(pet?.emergencyVet?.phone || '');
   const [imageUrl, setImageUrl] = useState(pet?.image || pet?.imageUrl || '');
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -111,6 +115,9 @@ const EditPetScreen = () => {
         age: calculatedAge,
         birthDate: birthDate || undefined,
         medicalNotes, image: imageUrl,
+        feedingScheduleAndAllergies,
+        behavioralQuirks,
+        emergencyVet: { name: emergencyVetName, phone: emergencyVetPhone }
       });
       Alert.alert('✅ Updated', `${name}'s profile has been updated.`, [
         { text: 'OK', onPress: () => navigation.goBack() },
@@ -242,17 +249,67 @@ const EditPetScreen = () => {
               </TouchableOpacity>
             </Field>
 
-            <Field label="Medical Notes / Allergies" icon="medical-outline">
+            <Field label="Medical Notes" icon="medical-outline">
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Any health conditions, allergies, or notes…"
+                placeholder="Any general health conditions or notes…"
                 placeholderTextColor={C.outlineVariant}
                 value={medicalNotes}
                 onChangeText={setMedicalNotes}
                 multiline
-                numberOfLines={4}
+                numberOfLines={3}
                 textAlignVertical="top"
               />
+            </Field>
+
+            <Field label="Feeding Schedule & Allergies" icon="restaurant-outline">
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder='e.g., "Allergic to chicken, feed 1 cup at 8 AM"'
+                placeholderTextColor={C.outlineVariant}
+                value={feedingScheduleAndAllergies}
+                onChangeText={setFeedingScheduleAndAllergies}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </Field>
+
+            <Field label="Behavioral Quirks" icon="happy-outline">
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder='e.g., "Scared of thunder"'
+                placeholderTextColor={C.outlineVariant}
+                value={behavioralQuirks}
+                onChangeText={setBehavioralQuirks}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </Field>
+
+            <Field label="Emergency Vet Contact" icon="medkit-outline">
+              <View style={styles.row}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Vet Name"
+                    placeholderTextColor={C.outlineVariant}
+                    value={emergencyVetName}
+                    onChangeText={setEmergencyVetName}
+                  />
+                </View>
+                <View style={{ flex: 1, paddingLeft: 8 }}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Phone Number"
+                    placeholderTextColor={C.outlineVariant}
+                    keyboardType="phone-pad"
+                    value={emergencyVetPhone}
+                    onChangeText={setEmergencyVetPhone}
+                  />
+                </View>
+              </View>
             </Field>
           </View>
 

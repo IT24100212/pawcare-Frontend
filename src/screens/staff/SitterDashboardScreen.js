@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, StatusBar, Modal, ScrollView,
+  ActivityIndicator, Alert, StatusBar, Modal, ScrollView, Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
@@ -32,6 +32,7 @@ const SitterDashboardScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Pending');
   const [receiptData, setReceiptData] = useState(null);
+  const [selectedBookingDetails, setSelectedBookingDetails] = useState(null);
   const { logoutUser } = useContext(AuthContext);
 
   const fetchBookings = async () => {
@@ -85,35 +86,37 @@ const SitterDashboardScreen = ({ navigation }) => {
     const petInitial = item.petId?.name?.charAt(0).toUpperCase() || '?';
     return (
       <View style={styles.card}>
-        <View style={styles.cardHeader}>
-          <View style={styles.petAvatar}>
-            <Text style={styles.petInitial}>{petInitial}</Text>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => setSelectedBookingDetails(item)}>
+          <View style={styles.cardHeader}>
+            <View style={styles.petAvatar}>
+              <Text style={styles.petInitial}>{petInitial}</Text>
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.cardPetName}>{item.petId?.name || 'Unknown Pet'}</Text>
+              <Text style={styles.cardSpecies}>{item.petId?.species || 'N/A'}</Text>
+            </View>
+            <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
+              <View style={[styles.statusDot, { backgroundColor: sc.dot }]} />
+              <Text style={[styles.statusText, { color: sc.text }]}>{item.status}</Text>
+            </View>
           </View>
-          <View style={{ flex: 1, marginLeft: 12 }}>
-            <Text style={styles.cardPetName}>{item.petId?.name || 'Unknown Pet'}</Text>
-            <Text style={styles.cardSpecies}>{item.petId?.species || 'N/A'}</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: sc.bg }]}>
-            <View style={[styles.statusDot, { backgroundColor: sc.dot }]} />
-            <Text style={[styles.statusText, { color: sc.text }]}>{item.status}</Text>
-          </View>
-        </View>
 
-        <View style={styles.cardDivider} />
-        <View style={styles.cardDetails}>
-          <View style={styles.detailRow}>
-            <Ionicons name="calendar-outline" size={14} color={C.outline} />
-            <Text style={styles.detailText}>{dateStr}</Text>
+          <View style={styles.cardDivider} />
+          <View style={styles.cardDetails}>
+            <View style={styles.detailRow}>
+              <Ionicons name="calendar-outline" size={14} color={C.outline} />
+              <Text style={styles.detailText}>{dateStr}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="time-outline" size={14} color={C.outline} />
+              <Text style={styles.detailText}>{item.timeSlot || 'N/A'}</Text>
+            </View>
+            <View style={styles.detailRow}>
+              <Ionicons name="person-outline" size={14} color={C.outline} />
+              <Text style={styles.detailText}>{item.userId?.name || 'Unknown'}</Text>
+            </View>
           </View>
-          <View style={styles.detailRow}>
-            <Ionicons name="time-outline" size={14} color={C.outline} />
-            <Text style={styles.detailText}>{item.timeSlot || 'N/A'}</Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Ionicons name="person-outline" size={14} color={C.outline} />
-            <Text style={styles.detailText}>{item.userId?.name || 'Unknown'}</Text>
-          </View>
-        </View>
+        </TouchableOpacity>
 
         {item.status === 'Pending' && (
           <View style={styles.cardActions}>
@@ -281,6 +284,79 @@ const SitterDashboardScreen = ({ navigation }) => {
           </View>
         </View>
       </Modal>
+
+      {/* Quick-Access Details Modal */}
+      <Modal
+        visible={!!selectedBookingDetails}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSelectedBookingDetails(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.detailsCard}>
+            <View style={styles.detailsHeader}>
+              <Text style={styles.detailsTitle}>Pet Details</Text>
+              <TouchableOpacity onPress={() => setSelectedBookingDetails(null)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close" size={24} color={C.onSurfaceVariant} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.detailsScroll}>
+              <View style={styles.detailsPetHeader}>
+                <View style={styles.detailsAvatar}>
+                  <Text style={styles.detailsAvatarText}>{selectedBookingDetails?.petId?.name?.charAt(0).toUpperCase() || '?'}</Text>
+                </View>
+                <View>
+                  <Text style={styles.detailsPetName}>{selectedBookingDetails?.petId?.name || 'Unknown Pet'}</Text>
+                  <Text style={styles.detailsPetSpecies}>{selectedBookingDetails?.petId?.species || 'Unknown'} • {selectedBookingDetails?.petId?.breed || 'Unknown Breed'}</Text>
+                </View>
+              </View>
+
+              <View style={styles.detailsSection}>
+                <View style={styles.detailsSectionHeader}>
+                  <Ionicons name="restaurant-outline" size={18} color={C.primary} />
+                  <Text style={styles.detailsSectionTitle}>Feeding & Allergies</Text>
+                </View>
+                <Text style={styles.detailsSectionText}>
+                  {selectedBookingDetails?.petId?.feedingScheduleAndAllergies || 'None provided'}
+                </Text>
+              </View>
+
+              <View style={styles.detailsSection}>
+                <View style={styles.detailsSectionHeader}>
+                  <Ionicons name="happy-outline" size={18} color={C.primary} />
+                  <Text style={styles.detailsSectionTitle}>Behavioral Quirks</Text>
+                </View>
+                <Text style={styles.detailsSectionText}>
+                  {selectedBookingDetails?.petId?.behavioralQuirks || 'None provided'}
+                </Text>
+              </View>
+
+              <View style={styles.detailsSection}>
+                <View style={styles.detailsSectionHeader}>
+                  <Ionicons name="medkit-outline" size={18} color={C.error} />
+                  <Text style={[styles.detailsSectionTitle, { color: C.error }]}>Emergency Vet Contact</Text>
+                </View>
+                <Text style={styles.detailsSectionText}>
+                  <Text style={{ fontWeight: '700' }}>Name:</Text> {selectedBookingDetails?.petId?.emergencyVet?.name || 'Not provided'}
+                </Text>
+                <Text style={styles.detailsSectionText}>
+                  <Text style={{ fontWeight: '700' }}>Phone:</Text> {selectedBookingDetails?.petId?.emergencyVet?.phone || 'Not provided'}
+                </Text>
+                {selectedBookingDetails?.petId?.emergencyVet?.phone && (
+                  <TouchableOpacity
+                    style={styles.callVetBtn}
+                    onPress={() => Linking.openURL(`tel:${selectedBookingDetails.petId.emergencyVet.phone}`)}
+                  >
+                    <Ionicons name="call" size={18} color="#fff" />
+                    <Text style={styles.callVetBtnText}>Call Vet Instantly</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -340,6 +416,21 @@ const styles = StyleSheet.create({
   receiptValue: { fontSize: 16, color: C.onSurface, fontWeight: '700' },
   receiptCloseBtn: { backgroundColor: C.primary, width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   receiptCloseBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  detailsCard: { backgroundColor: '#fff', borderRadius: 24, width: '100%', maxHeight: '85%', padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 20, elevation: 10 },
+  detailsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  detailsTitle: { fontSize: 20, fontWeight: '800', color: C.onSurface },
+  detailsScroll: { paddingBottom: 20 },
+  detailsPetHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 24, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: C.surfaceHigh },
+  detailsAvatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: C.primary + '18', justifyContent: 'center', alignItems: 'center' },
+  detailsAvatarText: { fontSize: 22, fontWeight: '800', color: C.primary },
+  detailsPetName: { fontSize: 18, fontWeight: '800', color: C.onSurface, marginBottom: 4 },
+  detailsPetSpecies: { fontSize: 14, color: C.outline, fontWeight: '500' },
+  detailsSection: { marginBottom: 24 },
+  detailsSectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  detailsSectionTitle: { fontSize: 15, fontWeight: '800', color: C.primary },
+  detailsSectionText: { fontSize: 15, color: C.onSurfaceVariant, lineHeight: 22, marginLeft: 26 },
+  callVetBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: C.error, paddingVertical: 14, borderRadius: 14, marginTop: 16, marginLeft: 26, shadowColor: C.error, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+  callVetBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });
 
 export default SitterDashboardScreen;

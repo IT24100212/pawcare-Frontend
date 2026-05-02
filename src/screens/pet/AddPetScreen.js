@@ -39,6 +39,10 @@ const AddPetScreen = () => {
   const [birthDate, setBirthDate] = useState('');
   const [showBirthDatePicker, setShowBirthDatePicker] = useState(false);
   const [medicalNotes, setMedicalNotes] = useState('');
+  const [feedingScheduleAndAllergies, setFeedingScheduleAndAllergies] = useState('');
+  const [behavioralQuirks, setBehavioralQuirks] = useState('');
+  const [emergencyVetName, setEmergencyVetName] = useState('');
+  const [emergencyVetPhone, setEmergencyVetPhone] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,6 +107,9 @@ const AddPetScreen = () => {
         age: calculatedAge,
         birthDate: birthDate || undefined,
         medicalNotes, image: imageUrl,
+        feedingScheduleAndAllergies,
+        behavioralQuirks,
+        emergencyVet: { name: emergencyVetName, phone: emergencyVetPhone }
       });
       Alert.alert('🐾 Added!', `${name} has been added to your pets.`, [
         { text: 'Great!', onPress: () => navigation.goBack() },
@@ -234,17 +241,67 @@ const AddPetScreen = () => {
               </TouchableOpacity>
             </Field>
 
-            <Field label="Medical Notes / Allergies" icon="medical-outline">
+            <Field label="Medical Notes" icon="medical-outline">
               <TextInput
                 style={[styles.input, styles.textArea]}
-                placeholder="Any health conditions, allergies, or notes…"
+                placeholder="Any general health conditions or notes…"
                 placeholderTextColor={C.outlineVariant}
                 value={medicalNotes}
                 onChangeText={setMedicalNotes}
                 multiline
-                numberOfLines={4}
+                numberOfLines={3}
                 textAlignVertical="top"
               />
+            </Field>
+
+            <Field label="Feeding Schedule & Allergies" icon="restaurant-outline">
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder='e.g., "Allergic to chicken, feed 1 cup at 8 AM"'
+                placeholderTextColor={C.outlineVariant}
+                value={feedingScheduleAndAllergies}
+                onChangeText={setFeedingScheduleAndAllergies}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </Field>
+
+            <Field label="Behavioral Quirks" icon="happy-outline">
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder='e.g., "Scared of thunder"'
+                placeholderTextColor={C.outlineVariant}
+                value={behavioralQuirks}
+                onChangeText={setBehavioralQuirks}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+              />
+            </Field>
+
+            <Field label="Emergency Vet Contact" icon="medkit-outline">
+              <View style={styles.row}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Vet Name"
+                    placeholderTextColor={C.outlineVariant}
+                    value={emergencyVetName}
+                    onChangeText={setEmergencyVetName}
+                  />
+                </View>
+                <View style={{ flex: 1, paddingLeft: 8 }}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Phone Number"
+                    placeholderTextColor={C.outlineVariant}
+                    keyboardType="phone-pad"
+                    value={emergencyVetPhone}
+                    onChangeText={setEmergencyVetPhone}
+                  />
+                </View>
+              </View>
             </Field>
           </View>
 
