@@ -140,6 +140,17 @@ const FeedbackWallScreen = () => {
             <Text style={styles.commentText}>"{item.comment}"</Text>
           </View>
         ) : null}
+
+        {/* AI Auto Reply */}
+        {item.autoReply ? (
+          <View style={{ marginTop: 10, backgroundColor: C.primary + '10', borderRadius: 10, padding: 12, borderLeftWidth: 3, borderLeftColor: C.primary }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <MaterialIcons name="support-agent" size={14} color={C.primary} />
+              <Text style={{ fontSize: 11, fontWeight: '800', color: C.primary }}>ADMIN REPLY</Text>
+            </View>
+            <Text style={{ fontSize: 13, color: C.primary, fontStyle: 'italic', lineHeight: 20 }}>{item.autoReply}</Text>
+          </View>
+        ) : null}
         
         {/* Actions */}
         {isOwner && isWithinWindow && (

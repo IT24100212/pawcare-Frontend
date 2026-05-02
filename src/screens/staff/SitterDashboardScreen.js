@@ -417,21 +417,23 @@ const SitterDashboardScreen = () => {
       </View>
 
       {/* Tab row */}
-      <View style={styles.tabRow}>
-        {TABS.map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
-            {counts[tab] > 0 && (
-              <View style={[styles.tabBadge, activeTab === tab && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, activeTab === tab && { color: C.primary }]}>{counts[tab]}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+      <View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
+          {TABS.map(tab => (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeTab === tab && styles.tabActive]}
+              onPress={() => setActiveTab(tab)}
+            >
+              <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab}</Text>
+              {counts[tab] > 0 && (
+                <View style={[styles.tabBadge, activeTab === tab && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, activeTab === tab && { color: C.primary }]}>{counts[tab]}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {loading ? (
