@@ -16,6 +16,11 @@ export const changePassword = async (data) => {
   return response.data;
 };
 
+export const deleteMyAccount = async () => {
+  const response = await axiosInstance.delete('/users/profile');
+  return response.data;
+};
+
 export const uploadImage = async (formData) => {
   const token = await SecureStore.getItemAsync('userToken');
   const response = await fetch(`${axiosInstance.defaults.baseURL}/upload/image`, {

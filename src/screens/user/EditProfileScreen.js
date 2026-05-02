@@ -7,7 +7,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
-import { getProfile, updateProfile, changePassword, uploadImage } from '../../api/userApi';
+import { getProfile, updateProfile, changePassword, uploadImage, deleteMyAccount } from '../../api/userApi';
 import { AuthContext } from '../../context/AuthContext';
 import { isValidEmail, isValidPhone, isValidPassword } from '../../utils/validators';
 
@@ -99,6 +99,23 @@ const EditProfileScreen = () => {
     } catch (e) {
       Alert.alert('Error', e?.response?.data?.message || 'Failed to change password');
     }
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert('Delete Account', 'Are you sure you want to permanently delete your account? All pending appointments and orders will be cancelled. This action cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { 
+        text: 'Yes, Delete', style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteMyAccount();
+            Alert.alert('Account Deleted', 'Your account has been deleted successfully.', [{ text: 'OK', onPress: logoutUser }]);
+          } catch (e) {
+            Alert.alert('Error', e?.response?.data?.message || 'Failed to delete account');
+          }
+        }
+      }
+    ]);
   };
 
   if (loading) return (
@@ -224,6 +241,15 @@ const EditProfileScreen = () => {
             <TouchableOpacity style={styles.pwBtn} onPress={handleChangePassword} activeOpacity={0.85}>
               <Text style={styles.saveBtnText}>Update Password</Text>
             </TouchableOpacity>
+
+            <View style={{ marginTop: 30, borderTopWidth: 1, borderTopColor: C.surfaceHigh, paddingTop: 20 }}>
+              <Text style={{ fontSize: 13, fontWeight: '700', color: C.error, marginBottom: 8 }}>Danger Zone</Text>
+              <Text style={{ fontSize: 12, color: C.outline, marginBottom: 12 }}>Permanently delete your account and cancel all active orders.</Text>
+              <TouchableOpacity style={styles.deleteAccBtn} onPress={handleDeleteAccount} activeOpacity={0.85}>
+                <MaterialIcons name="delete-forever" size={18} color={C.error} />
+                <Text style={styles.deleteAccBtnText}>Delete Account</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -316,6 +342,8 @@ const styles = StyleSheet.create({
   saveBtn: { backgroundColor: C.primary, height: 54, borderRadius: 27, justifyContent: 'center', alignItems: 'center', marginTop: 8, shadowColor: C.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5 },
   pwBtn: { backgroundColor: C.secondary, height: 54, borderRadius: 27, justifyContent: 'center', alignItems: 'center', marginTop: 8, shadowColor: C.secondary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5 },
   saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  deleteAccBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, backgroundColor: C.errorContainer, height: 48, borderRadius: 24, borderWidth: 1, borderColor: C.errorContainer },
+  deleteAccBtnText: { color: C.error, fontSize: 14, fontWeight: '800' },
   activityRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.05)' },
   activityIcon: { width: 44, height: 44, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
   activityTitle: { fontSize: 15, fontWeight: '700', color: C.onSurface, marginBottom: 2 },

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { getAllUsers, blockUser, createServiceProvider } from '../../api/adminApi';
+import { getAllUsers, blockUser, createServiceProvider, deleteUser } from '../../api/adminApi';
 import { getAdminFeedback, deleteFeedback, updateFeedback } from '../../api/feedbackApi';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -71,6 +71,23 @@ const AdminDashboardScreen = () => {
     } catch {
       Alert.alert('Error', 'Failed to toggle user block status');
     }
+  };
+
+  const handleDeleteUser = (id) => {
+    Alert.alert('Delete User', 'Are you sure you want to delete and anonymize this account? All their pending items will be cancelled.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes, Delete', style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteUser(id);
+            fetchData();
+          } catch (e) {
+            Alert.alert('Error', e?.response?.data?.message || 'Failed to delete user');
+          }
+        }
+      }
+    ]);
   };
 
   const handleDeleteFeedback = async (id) => {
@@ -145,6 +162,14 @@ const AdminDashboardScreen = () => {
               <Text style={[styles.blockBtnText, { color: item.isBlocked ? C.primary : C.error }]}>
                 {item.isBlocked ? 'Unblock' : 'Block'}
               </Text>
+            </TouchableOpacity>
+          )}
+          {item.role !== 'Admin' && (
+            <TouchableOpacity
+              style={[styles.blockBtn, { borderColor: C.errorContainer, backgroundColor: 'transparent' }]}
+              onPress={() => handleDeleteUser(item._id)}
+            >
+              <Ionicons name="trash-outline" size={14} color={C.error} />
             </TouchableOpacity>
           )}
         </View>

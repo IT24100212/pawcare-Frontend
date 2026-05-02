@@ -14,3 +14,8 @@ export const createServiceProvider = async (providerData) => {
   const response = await axiosInstance.post('/admin/providers', providerData);
   return response.data;
 };
+
+export const deleteUser = async (id) => {
+  const response = await axiosInstance.delete(`/admin/users/${id}`);
+  return response.data;
+};
