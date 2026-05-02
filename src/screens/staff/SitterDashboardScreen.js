@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { getAllBoardingBookings, updateBookingStatus, getBoardingAvailability } from '../../api/boardingApi';
+import { getStaffFeedback } from '../../api/feedbackApi';
 import { AuthContext } from '../../context/AuthContext';
 
 const C = {
@@ -18,7 +19,7 @@ const C = {
 };
 
 const MAX_CAPACITY = 20;
-const TABS = ['Pending', 'Approved', 'All'];
+const TABS = ['Pending', 'Approved', 'All', 'Feedback'];
 
 const STATUS_CONFIG = {
   Pending:  { bg: '#fff8ed', text: '#92400e', dot: '#f59e0b' },
@@ -56,6 +57,7 @@ const fmtDateFull = (dateVal) => {
 
 const SitterDashboardScreen = () => {
   const [bookings, setBookings] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Pending');
   const [capacityMap, setCapacityMap] = useState({});  // { 'YYYY-MM-DD': count }
@@ -66,11 +68,16 @@ const SitterDashboardScreen = () => {
   const fetchBookings = async () => {
     setLoading(true);
     try {
-      const data = await getAllBoardingBookings();
-      const list = Array.isArray(data) ? data : data.bookings || [];
-      setBookings(list.filter(b => b.petId != null));
+      if (activeTab === 'Feedback') {
+        const data = await getStaffFeedback();
+        setFeedbacks(Array.isArray(data) ? data : data.feedbacks || []);
+      } else {
+        const data = await getAllBoardingBookings();
+        const list = Array.isArray(data) ? data : data.bookings || [];
+        setBookings(list.filter(b => b.petId != null));
+      }
     } catch {
-      Alert.alert('Error', 'Failed to fetch boarding bookings');
+      Alert.alert('Error', 'Failed to fetch data');
     } finally {
       setLoading(false);
     }
@@ -93,9 +100,9 @@ const SitterDashboardScreen = () => {
   const refreshAll = useCallback(() => {
     fetchBookings();
     fetchCapacity();
-  }, []);
+  }, [activeTab]);
 
-  useEffect(() => { refreshAll(); }, []);
+  useEffect(() => { refreshAll(); }, [refreshAll]);
 
   const handleStatusUpdate = async (id, status, petName, dates) => {
     const dateLabel = dates && dates.length > 0
@@ -135,6 +142,7 @@ const SitterDashboardScreen = () => {
     Pending:  bookings.filter(b => b.status === 'Pending').length,
     Approved: bookings.filter(b => b.status === 'Approved').length,
     All:      bookings.length,
+    Feedback: feedbacks.length,
   };
 
   // ── Capacity tracker panel ────────────────────────────────────────────────
@@ -199,6 +207,66 @@ const SitterDashboardScreen = () => {
               })}
             </ScrollView>
           )
+        )}
+      </View>
+    );
+  };
+
+  const renderFeedback = ({ item }) => {
+    let sentimentColor = C.outline;
+    if (item.sentiment === 'positive') sentimentColor = '#10b981';
+    if (item.sentiment === 'negative') sentimentColor = C.error;
+    if (item.sentiment === 'neutral') sentimentColor = '#f59e0b';
+    
+    let priorityColor = C.outline;
+    if (item.priority === 'high') priorityColor = C.error;
+    if (item.priority === 'medium') priorityColor = '#f59e0b';
+    if (item.priority === 'low') priorityColor = '#10b981';
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardHeader}>
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.secondary + '14', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color={C.secondary} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.cardPetName}>{item.category || item.serviceType || 'General'}</Text>
+            <Text style={styles.cardSpecies}>{item.userId?.name || 'Anonymous'}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: '#fef9c3' }]}>
+            <Ionicons name="star" size={12} color="#f59e0b" />
+            <Text style={[styles.statusText, { color: '#92400e' }]}>{item.rating || '-'}/5</Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 6, marginHorizontal: 16, marginBottom: 12 }}>
+          {item.sentiment && (
+            <View style={{ backgroundColor: sentimentColor + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: sentimentColor, textTransform: 'capitalize' }}>
+                {item.sentiment}
+              </Text>
+            </View>
+          )}
+          {item.priority && (
+            <View style={{ backgroundColor: priorityColor + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: priorityColor, textTransform: 'capitalize' }}>
+                Priority: {item.priority}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {(item.message || item.comment) && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14, backgroundColor: C.surfaceLow, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: C.secondary }}>
+            <Text style={{ fontSize: 13, color: C.onSurfaceVariant, fontStyle: 'italic', lineHeight: 20 }}>"{item.message || item.comment}"</Text>
+          </View>
+        )}
+
+        {item.autoReply && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14, backgroundColor: C.primary + '10', borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: C.primary }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: C.primary, marginBottom: 2 }}>AI Suggested Reply:</Text>
+            <Text style={{ fontSize: 13, color: C.primary, fontStyle: 'italic', lineHeight: 20 }}>{item.autoReply}</Text>
+          </View>
         )}
       </View>
     );
@@ -368,6 +436,20 @@ const SitterDashboardScreen = () => {
 
       {loading ? (
         <ActivityIndicator size="large" color={C.primary} style={{ marginTop: 60, backgroundColor: C.surface, flex: 1 }} />
+      ) : activeTab === 'Feedback' ? (
+        <FlatList
+          data={feedbacks}
+          keyExtractor={item => item._id?.toString()}
+          renderItem={renderFeedback}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <MaterialIcons name="rate-review" size={56} color={C.outlineVariant} />
+              <Text style={styles.emptyTitle}>No feedback found</Text>
+            </View>
+          }
+        />
       ) : (
         <FlatList
           data={filtered}

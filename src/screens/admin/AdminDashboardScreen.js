@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { getAllUsers, blockUser, createServiceProvider } from '../../api/adminApi';
-import { getAllFeedback, deleteFeedback } from '../../api/feedbackApi';
+import { getAdminFeedback, deleteFeedback, updateFeedback } from '../../api/feedbackApi';
 import { AuthContext } from '../../context/AuthContext';
 
 const C = {
@@ -29,7 +29,7 @@ const ROLE_CONFIG = {
   Admin:          { bg: '#fef2f2', text: '#991b1b', icon: 'admin-panel-settings' },
 };
 
-const TABS = ['Users', 'Feedback', 'Add Provider'];
+const TABS = ['Users', 'Feedback', 'Analytics', 'Add Provider'];
 
 const AdminDashboardScreen = () => {
   const [tab, setTab] = useState('Users');
@@ -52,7 +52,7 @@ const AdminDashboardScreen = () => {
         const data = await getAllUsers();
         setUsers(Array.isArray(data) ? data : data.users || []);
       } else if (tab === 'Feedback') {
-        const data = await getAllFeedback();
+        const data = await getAdminFeedback();
         setFeedbacks(Array.isArray(data) ? data : data.feedbacks || []);
       }
     } catch {
@@ -153,36 +153,72 @@ const AdminDashboardScreen = () => {
   };
 
   /* ─── Render Feedback Card ─── */
-  const renderFeedback = ({ item }) => (
-    <View style={styles.card}>
-      <View style={styles.cardRow}>
-        <View style={styles.feedbackAvatar}>
-          <Ionicons name="chatbubble-ellipses-outline" size={18} color={C.secondary} />
+  const renderFeedback = ({ item }) => {
+    let sentimentColor = C.outline;
+    if (item.sentiment === 'positive') sentimentColor = '#10b981';
+    if (item.sentiment === 'negative') sentimentColor = C.error;
+    if (item.sentiment === 'neutral') sentimentColor = '#f59e0b';
+    
+    let priorityColor = C.outline;
+    if (item.priority === 'high') priorityColor = C.error;
+    if (item.priority === 'medium') priorityColor = '#f59e0b';
+    if (item.priority === 'low') priorityColor = '#10b981';
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardRow}>
+          <View style={styles.feedbackAvatar}>
+            <Ionicons name="chatbubble-ellipses-outline" size={18} color={C.secondary} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.cardName}>{item.category || item.serviceType || 'General'}</Text>
+            <Text style={styles.cardEmail}>{item.userId?.email || 'Anonymous'}</Text>
+          </View>
+          <View style={styles.ratingBadge}>
+            <Ionicons name="star" size={12} color="#f59e0b" />
+            <Text style={styles.ratingText}>{item.rating || '-'}/5</Text>
+          </View>
         </View>
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.cardName}>{item.serviceType || 'General'}</Text>
-          <Text style={styles.cardEmail}>{item.user?.email || 'Anonymous'}</Text>
+
+        <View style={{ flexDirection: 'row', gap: 6, marginHorizontal: 16, marginBottom: 12 }}>
+          {item.sentiment && (
+            <View style={{ backgroundColor: sentimentColor + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: sentimentColor, textTransform: 'capitalize' }}>
+                {item.sentiment}
+              </Text>
+            </View>
+          )}
+          {item.priority && (
+            <View style={{ backgroundColor: priorityColor + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: priorityColor, textTransform: 'capitalize' }}>
+                Priority: {item.priority}
+              </Text>
+            </View>
+          )}
         </View>
-        <View style={styles.ratingBadge}>
-          <Ionicons name="star" size={12} color="#f59e0b" />
-          <Text style={styles.ratingText}>{item.rating}/5</Text>
+
+        {(item.message || item.comment) && (
+          <View style={styles.commentBox}>
+            <Text style={styles.commentText}>"{item.message || item.comment}"</Text>
+          </View>
+        )}
+
+        {item.autoReply && (
+          <View style={[styles.commentBox, { borderLeftColor: C.primary, backgroundColor: C.primary + '10', marginTop: 4 }]}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: C.primary, marginBottom: 2 }}>AI Generated Reply:</Text>
+            <Text style={[styles.commentText, { color: C.primary }]}>{item.autoReply}</Text>
+          </View>
+        )}
+
+        <View style={styles.feedbackFooter}>
+          <TouchableOpacity style={styles.deleteFeedbackBtn} onPress={() => handleDeleteFeedback(item._id)}>
+            <Ionicons name="trash-outline" size={14} color={C.error} />
+            <Text style={styles.deleteFeedbackText}>Remove Review</Text>
+          </TouchableOpacity>
         </View>
       </View>
-
-      {item.comment && (
-        <View style={styles.commentBox}>
-          <Text style={styles.commentText}>"{item.comment}"</Text>
-        </View>
-      )}
-
-      <View style={styles.feedbackFooter}>
-        <TouchableOpacity style={styles.deleteFeedbackBtn} onPress={() => handleDeleteFeedback(item._id)}>
-          <Ionicons name="trash-outline" size={14} color={C.error} />
-          <Text style={styles.deleteFeedbackText}>Remove Review</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  };
 
   /* ─── Render Add Provider Form ─── */
   const renderAddProvider = () => (
@@ -293,7 +329,47 @@ const AdminDashboardScreen = () => {
     </KeyboardAvoidingView>
   );
 
-  const tabCounts = { Users: users.length, Feedback: feedbacks.length, 'Add Provider': null };
+  /* ─── Render Analytics ─── */
+  const renderAnalytics = () => {
+    const total = feedbacks.length;
+    const positive = feedbacks.filter(f => f.sentiment === 'positive').length;
+    const negative = feedbacks.filter(f => f.sentiment === 'negative').length;
+    const neutral = feedbacks.filter(f => f.sentiment === 'neutral').length;
+    const highPriority = feedbacks.filter(f => f.priority === 'high').length;
+
+    return (
+      <ScrollView contentContainerStyle={styles.formContainer}>
+        <View style={styles.formCard}>
+          <Text style={styles.formCardTitle}>AI Sentiment Analysis</Text>
+          <Text style={styles.formCardSub}>Overview of all customer feedback</Text>
+          <View style={{ marginVertical: 16, height: 1, backgroundColor: C.surfaceHigh }} />
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, paddingHorizontal: 10 }}>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 28, fontWeight: '800', color: '#10b981' }}>{positive}</Text>
+              <Text style={{ fontSize: 12, color: C.outline, fontWeight: '600' }}>Positive</Text>
+            </View>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 28, fontWeight: '800', color: '#f59e0b' }}>{neutral}</Text>
+              <Text style={{ fontSize: 12, color: C.outline, fontWeight: '600' }}>Neutral</Text>
+            </View>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontSize: 28, fontWeight: '800', color: C.error }}>{negative}</Text>
+              <Text style={{ fontSize: 12, color: C.outline, fontWeight: '600' }}>Negative</Text>
+            </View>
+          </View>
+
+          <View style={{ backgroundColor: C.errorContainer, padding: 20, borderRadius: 16, alignItems: 'center' }}>
+            <Ionicons name="alert-circle-outline" size={36} color={C.error} />
+            <Text style={{ fontSize: 22, fontWeight: '800', color: C.error, marginTop: 4 }}>{highPriority}</Text>
+            <Text style={{ fontSize: 13, color: C.error, fontWeight: '600' }}>High Priority Issues Pending</Text>
+          </View>
+        </View>
+      </ScrollView>
+    );
+  };
+
+  const tabCounts = { Users: users.length, Feedback: feedbacks.length, Analytics: null, 'Add Provider': null };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -352,6 +428,8 @@ const AdminDashboardScreen = () => {
       {/* Content */}
       {tab === 'Add Provider' ? (
         renderAddProvider()
+      ) : tab === 'Analytics' ? (
+        renderAnalytics()
       ) : loading ? (
         <ActivityIndicator size="large" color={C.primary} style={{ marginTop: 60, flex: 1, backgroundColor: C.surface }} />
       ) : tab === 'Users' ? (

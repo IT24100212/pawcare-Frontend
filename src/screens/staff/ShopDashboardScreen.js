@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { getAllOrders, updateOrderStatus } from '../../api/orderApi';
+import { getStaffFeedback } from '../../api/feedbackApi';
 import { AuthContext } from '../../context/AuthContext';
 
 const C = {
@@ -26,10 +27,11 @@ const ORDER_STATUS_CONFIG = {
   Delivered: { bg: '#f0fdf4', text: '#14532d', dot: '#16a34a', label: 'Delivered' },
 };
 
-const TABS = ['Pending', 'Ready', 'All'];
+const TABS = ['Pending', 'Ready', 'All', 'Feedback'];
 
 const ShopDashboardScreen = () => {
   const [orders, setOrders] = useState([]);
+  const [feedbacks, setFeedbacks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('Pending');
   const { logoutUser } = useContext(AuthContext);
@@ -38,16 +40,21 @@ const ShopDashboardScreen = () => {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const data = await getAllOrders();
-      setOrders(Array.isArray(data) ? data : data.orders || []);
+      if (activeTab === 'Feedback') {
+        const data = await getStaffFeedback();
+        setFeedbacks(Array.isArray(data) ? data : data.feedbacks || []);
+      } else {
+        const data = await getAllOrders();
+        setOrders(Array.isArray(data) ? data : data.orders || []);
+      }
     } catch {
-      Alert.alert('Error', 'Failed to fetch orders');
+      Alert.alert('Error', 'Failed to fetch data');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => { fetchOrders(); }, [activeTab]);
 
   const handleMarkReady = async (id) => {
     try {
@@ -80,8 +87,69 @@ const ShopDashboardScreen = () => {
     Pending: orders.filter(o => o.status === 'Pending').length,
     Ready: orders.filter(o => o.status === 'Ready').length,
     All: orders.length,
+    Feedback: feedbacks.length,
   };
   const revenue = orders.reduce((sum, o) => sum + (Number(o.totalPrice) || 0), 0);
+
+  const renderFeedback = ({ item }) => {
+    let sentimentColor = C.outline;
+    if (item.sentiment === 'positive') sentimentColor = '#10b981';
+    if (item.sentiment === 'negative') sentimentColor = C.error;
+    if (item.sentiment === 'neutral') sentimentColor = '#f59e0b';
+    
+    let priorityColor = C.outline;
+    if (item.priority === 'high') priorityColor = C.error;
+    if (item.priority === 'medium') priorityColor = '#f59e0b';
+    if (item.priority === 'low') priorityColor = '#10b981';
+
+    return (
+      <View style={styles.card}>
+        <View style={styles.cardTop}>
+          <View style={{ width: 46, height: 46, borderRadius: 12, backgroundColor: C.secondary + '14', justifyContent: 'center', alignItems: 'center' }}>
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color={C.secondary} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.customerName}>{item.category || item.serviceType || 'General'}</Text>
+            <Text style={styles.orderDate}>{item.userId?.name || 'Anonymous'}</Text>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: '#fef9c3' }]}>
+            <Ionicons name="star" size={12} color="#f59e0b" />
+            <Text style={[styles.statusText, { color: '#92400e' }]}>{item.rating || '-'}/5</Text>
+          </View>
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: 6, marginHorizontal: 16, marginBottom: 12 }}>
+          {item.sentiment && (
+            <View style={{ backgroundColor: sentimentColor + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: sentimentColor, textTransform: 'capitalize' }}>
+                {item.sentiment}
+              </Text>
+            </View>
+          )}
+          {item.priority && (
+            <View style={{ backgroundColor: priorityColor + '20', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+              <Text style={{ fontSize: 10, fontWeight: '700', color: priorityColor, textTransform: 'capitalize' }}>
+                Priority: {item.priority}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {(item.message || item.comment) && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14, backgroundColor: C.surfaceLow, borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: C.secondary }}>
+            <Text style={{ fontSize: 13, color: C.onSurfaceVariant, fontStyle: 'italic', lineHeight: 20 }}>"{item.message || item.comment}"</Text>
+          </View>
+        )}
+
+        {item.autoReply && (
+          <View style={{ marginHorizontal: 16, marginBottom: 14, backgroundColor: C.primary + '10', borderRadius: 12, padding: 12, borderLeftWidth: 3, borderLeftColor: C.primary }}>
+            <Text style={{ fontSize: 10, fontWeight: '700', color: C.primary, marginBottom: 2 }}>AI Suggested Reply:</Text>
+            <Text style={{ fontSize: 13, color: C.primary, fontStyle: 'italic', lineHeight: 20 }}>{item.autoReply}</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderOrder = ({ item }) => {
     const sc = ORDER_STATUS_CONFIG[item.status] || ORDER_STATUS_CONFIG.Pending;
@@ -221,6 +289,20 @@ const ShopDashboardScreen = () => {
       {/* Content */}
       {loading ? (
         <ActivityIndicator size="large" color={C.primary} style={{ marginTop: 60, flex: 1, backgroundColor: C.surface }} />
+      ) : activeTab === 'Feedback' ? (
+        <FlatList
+          data={feedbacks}
+          keyExtractor={item => item._id?.toString()}
+          renderItem={renderFeedback}
+          contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <MaterialIcons name="rate-review" size={56} color={C.outlineVariant} />
+              <Text style={styles.emptyTitle}>No feedback found</Text>
+            </View>
+          }
+        />
       ) : filtered.length === 0 ? (
         <View style={styles.emptyState}>
           <MaterialIcons name="receipt-long" size={56} color={C.outlineVariant} />

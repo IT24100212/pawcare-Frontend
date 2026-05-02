@@ -24,3 +24,13 @@ export const updateFeedback = async (id, data) => {
   const response = await axiosInstance.put(`/feedbacks/${id}`, data);
   return response.data;
 };
+
+export const getAdminFeedback = async () => {
+  const response = await axiosInstance.get('/feedbacks/admin');
+  return response.data;
+};
+
+export const getStaffFeedback = async () => {
+  const response = await axiosInstance.get('/feedbacks/staff');
+  return response.data;
+};
