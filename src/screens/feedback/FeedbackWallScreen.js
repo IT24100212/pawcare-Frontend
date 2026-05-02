@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, Alert, StatusBar,
@@ -6,7 +6,8 @@ import {
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { getAverageRatings, getAllFeedback } from '../../api/feedbackApi';
+import { getAverageRatings, getAllFeedback, deleteFeedback } from '../../api/feedbackApi';
+import { AuthContext } from '../../context/AuthContext';
 
 const C = {
   primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
@@ -43,6 +44,7 @@ const FeedbackWallScreen = () => {
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
   const isFocused = useIsFocused();
+  const { user } = useContext(AuthContext);
 
   const fetchAverages = async () => {
     try {
@@ -83,11 +85,31 @@ const FeedbackWallScreen = () => {
   const avg = getOverallAvg();
   const sc = SERVICE_CONFIG[filter] || SERVICE_CONFIG.All;
 
+  const handleDelete = (id) => {
+    Alert.alert('Delete Review', 'Are you sure you want to delete this review?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            await deleteFeedback(id);
+            fetchFeedbacks();
+            fetchAverages();
+          } catch (e) {
+            Alert.alert('Error', e?.response?.data?.message || 'Failed to delete review');
+          }
+        } 
+      }
+    ]);
+  };
+
   const renderFeedback = ({ item }) => {
     const itemSC = SERVICE_CONFIG[item.serviceType] || SERVICE_CONFIG.All;
     const dateStr = item.createdAt
       ? new Date(item.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
       : '';
+      
+    const isOwner = item.userId?._id === user?._id || item.userId === user?._id;
+    const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+    const isWithinWindow = item.createdAt ? (Date.now() - new Date(item.createdAt).getTime()) <= THREE_DAYS_MS : false;
     return (
       <View style={styles.card}>
         {/* Card Header */}
@@ -97,7 +119,7 @@ const FeedbackWallScreen = () => {
           </View>
           <View style={{ flex: 1, marginLeft: 10 }}>
             <Text style={styles.cardServiceType}>{item.serviceType}</Text>
-            <Text style={styles.cardUserName}>{item.user?.name || 'Anonymous'}</Text>
+            <Text style={styles.cardUserName}>{item.userId?.name || 'Anonymous'}</Text>
           </View>
           <View style={styles.cardRatingBadge}>
             <Ionicons name="star" size={11} color="#f59e0b" />
@@ -118,6 +140,20 @@ const FeedbackWallScreen = () => {
             <Text style={styles.commentText}>"{item.comment}"</Text>
           </View>
         ) : null}
+        
+        {/* Actions */}
+        {isOwner && isWithinWindow && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('SubmitFeedback', { editFeedback: item })}>
+              <Ionicons name="pencil" size={14} color={C.primary} />
+              <Text style={styles.actionBtnText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item._id)}>
+              <Ionicons name="trash" size={14} color={C.error} />
+              <Text style={styles.actionBtnTextDel}>Delete</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   };
@@ -254,6 +290,12 @@ const styles = StyleSheet.create({
   emptySubtitle: { fontSize: 14, color: C.outline, textAlign: 'center', paddingHorizontal: 40 },
   emptyBtn: { marginTop: 16, backgroundColor: C.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 99, shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 5 },
   emptyBtnText: { color: '#fff', fontWeight: '800', fontSize: 15 },
+
+  /* Actions */
+  actionRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.surfaceHigh },
+  actionBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 99, backgroundColor: C.surfaceLow },
+  actionBtnText: { fontSize: 12, fontWeight: '700', color: C.primary },
+  actionBtnTextDel: { fontSize: 12, fontWeight: '700', color: C.error },
 });
 
 export default FeedbackWallScreen;

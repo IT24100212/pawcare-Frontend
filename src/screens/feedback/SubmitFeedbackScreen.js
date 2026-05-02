@@ -4,9 +4,9 @@ import {
   ActivityIndicator, KeyboardAvoidingView, ScrollView, Platform, StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { submitFeedback } from '../../api/feedbackApi';
+import { submitFeedback, updateFeedback } from '../../api/feedbackApi';
 
 const C = {
   primary: '#006850', primaryContainer: '#148367', onPrimaryContainer: '#effff6',
@@ -27,9 +27,12 @@ const RATING_LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
 
 const SubmitFeedbackScreen = () => {
   const navigation = useNavigation();
-  const [serviceType, setServiceType] = useState('Vet');
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
+  const route = useRoute();
+  const editData = route.params?.editFeedback;
+  
+  const [serviceType, setServiceType] = useState(editData?.serviceType || 'Vet');
+  const [rating, setRating] = useState(editData?.rating || 5);
+  const [comment, setComment] = useState(editData?.comment || '');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -39,12 +42,19 @@ const SubmitFeedbackScreen = () => {
     }
     setSubmitting(true);
     try {
-      await submitFeedback({ serviceType, rating, comment });
-      Alert.alert('🎉 Thank you!', 'Your feedback has been submitted.', [
-        { text: 'Done', onPress: () => navigation.goBack() },
-      ]);
-    } catch {
-      Alert.alert('Error', 'Failed to submit feedback. Please try again.');
+      if (editData) {
+        await updateFeedback(editData._id, { serviceType, rating, comment });
+        Alert.alert('🎉 Updated!', 'Your feedback has been updated.', [
+          { text: 'Done', onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        await submitFeedback({ serviceType, rating, comment });
+        Alert.alert('🎉 Thank you!', 'Your feedback has been submitted.', [
+          { text: 'Done', onPress: () => navigation.goBack() },
+        ]);
+      }
+    } catch (e) {
+      Alert.alert('Error', e?.response?.data?.message || 'Failed to submit feedback. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -61,8 +71,8 @@ const SubmitFeedbackScreen = () => {
             <Ionicons name="arrow-back" size={22} color="rgba(236,253,245,0.85)" />
           </TouchableOpacity>
           <View>
-            <Text style={styles.headerTitle}>Leave a Review</Text>
-            <Text style={styles.headerSub}>Your experience matters to us</Text>
+            <Text style={styles.headerTitle}>{editData ? 'Edit Review' : 'Leave a Review'}</Text>
+            <Text style={styles.headerSub}>{editData ? 'Update your feedback' : 'Your experience matters to us'}</Text>
           </View>
           <View style={styles.headerAvatar}>
             <MaterialIcons name="rate-review" size={20} color={C.primaryFixedDim} />
@@ -165,7 +175,7 @@ const SubmitFeedbackScreen = () => {
             ) : (
               <>
                 <Ionicons name="send" size={18} color="#fff" />
-                <Text style={styles.submitBtnText}>Submit Feedback</Text>
+                <Text style={styles.submitBtnText}>{editData ? 'Update Feedback' : 'Submit Feedback'}</Text>
               </>
             )}
           </TouchableOpacity>
