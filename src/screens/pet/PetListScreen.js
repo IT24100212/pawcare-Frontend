@@ -114,12 +114,18 @@ const PetListScreen = () => {
               <MaterialIcons name="medical-services" size={32} color={C.onPrimaryContainer} />
               <Text style={styles.featuredTitle}>Book Vet Appointment</Text>
               <Text style={styles.featuredSub}>Certified medical care for your family members.</Text>
+              {/* AI Assist small button */}
+              <TouchableOpacity
+                style={styles.aiAssistBtn}
+                onPress={() => navigation.navigate('AISymptomChecker')}
+                activeOpacity={0.8}
+              >
+                <MaterialIcons name="psychology" size={14} color="#fbbf24" />
+                <Text style={styles.aiAssistText}>AI Assist</Text>
+              </TouchableOpacity>
             </View>
             <View style={styles.featuredIconBg}>
               <Ionicons name="medical" size={120} color="rgba(255,255,255,0.1)" />
-            </View>
-            <View style={styles.featuredBtn}>
-              <Text style={styles.featuredBtnText}>Schedule Now</Text>
             </View>
           </TouchableOpacity>
 
@@ -305,6 +311,9 @@ const styles = StyleSheet.create({
   },
   gridLabel: { fontSize: 15, fontWeight: '800', color: C.onSurface },
   gridSub: { fontSize: 11, color: C.outline, marginTop: 2, fontWeight: '500' },
+
+  aiAssistBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', marginTop: 10, backgroundColor: 'rgba(251,191,36,0.15)', borderWidth: 1, borderColor: 'rgba(251,191,36,0.4)', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 99 },
+  aiAssistText: { fontSize: 12, fontWeight: '700', color: '#fbbf24' },
 
   petList: { gap: 14 },
   petRowCard: {
