@@ -20,15 +20,15 @@ const C = {
 };
 
 const SERVICE_META = {
-  Vet:      { icon: 'medical-services',  color: '#006850', bg: 'rgba(0,104,80,0.08)',   label: 'Vet Appointments' },
-  Grooming: { icon: 'content-cut',       color: '#8e4e14', bg: 'rgba(142,78,20,0.08)', label: 'Grooming Sessions' },
-  Boarding: { icon: 'home',              color: '#1e7a6e', bg: 'rgba(30,122,110,0.08)', label: 'Boarding Stays' },
+  Vet: { icon: 'medical-services', color: '#006850', bg: 'rgba(0,104,80,0.08)', label: 'Vet Appointments' },
+  Grooming: { icon: 'content-cut', color: '#8e4e14', bg: 'rgba(142,78,20,0.08)', label: 'Grooming Sessions' },
+  Boarding: { icon: 'home', color: '#1e7a6e', bg: 'rgba(30,122,110,0.08)', label: 'Boarding Stays' },
 };
 
 const STATUS_META = {
-  Approved:  { color: '#065f46', bg: '#d1fae5', label: 'Approved' },
-  Pending:   { color: '#78350f', bg: '#fef3c7', label: 'Pending' },
-  Rejected:  { color: '#410002', bg: '#ffdad6', label: 'Rejected' },
+  Approved: { color: '#065f46', bg: '#d1fae5', label: 'Approved' },
+  Pending: { color: '#78350f', bg: '#fef3c7', label: 'Pending' },
+  Rejected: { color: '#410002', bg: '#ffdad6', label: 'Rejected' },
   Cancelled: { color: '#410002', bg: '#ffdad6', label: 'Cancelled' },
 };
 
@@ -98,7 +98,7 @@ const MyBookingsScreen = () => {
   const renderBookingCard = (item) => {
     const statusMeta = STATUS_META[item.status] || { color: C.outline, bg: C.surfaceHigh, label: item.status };
     const date = item.appointmentDate
-      ? new Date(item.appointmentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      ? new Date(item.appointmentDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
       : 'N/A';
     const isActualInstantSlot = item.isInstantSlot === true;
     const canCancel = item.status === 'Pending' && !isActualInstantSlot;
@@ -109,11 +109,11 @@ const MyBookingsScreen = () => {
         <View style={styles.cardTop}>
           <View style={styles.cardDateSection}>
             <Text style={styles.cardDateDay}>
-              {item.appointmentDate ? new Date(item.appointmentDate).getDate() : '--'}
+              {item.appointmentDate ? new Date(item.appointmentDate).getUTCDate() : '--'}
             </Text>
             <Text style={styles.cardDateMonth}>
               {item.appointmentDate
-                ? new Date(item.appointmentDate).toLocaleString('default', { month: 'short' }).toUpperCase()
+                ? new Date(item.appointmentDate).toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase()
                 : '---'}
             </Text>
           </View>

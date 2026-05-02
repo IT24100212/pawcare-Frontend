@@ -98,7 +98,12 @@ const ProductListScreen = () => {
           <Text style={styles.remCat}>{item.category || 'Wellness'}</Text>
           <Text style={styles.remName} numberOfLines={2}>{item.name}</Text>
         </View>
-        <Text style={styles.remPrice}>${Number(item.price || 0).toFixed(2)}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text style={styles.remPrice}>${Number(item.price || 0).toFixed(2)}</Text>
+          <Text style={[styles.remStock, item.stock <= 0 && { color: C.error }]}>
+            {item.stock > 0 ? `${item.stock} left` : 'Out of stock'}
+          </Text>
+        </View>
       </View>
       <TouchableOpacity 
         style={[styles.remAddBtn, addingId === item._id && styles.remAddAdding]} 
@@ -203,7 +208,12 @@ const ProductListScreen = () => {
                   <View style={styles.featTexts}>
                     <Text style={styles.featBadge}>Best Seller</Text>
                     <Text style={styles.featName} numberOfLines={2}>{featuredProduct.name}</Text>
-                    <Text style={styles.featPrice}>${Number(featuredProduct.price || 0).toFixed(2)}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Text style={styles.featPrice}>${Number(featuredProduct.price || 0).toFixed(2)}</Text>
+                      <Text style={[styles.featStock, featuredProduct.stock <= 0 && { color: '#ffdad6' }]}>
+                        • {featuredProduct.stock > 0 ? `${featuredProduct.stock} left` : 'Out of stock'}
+                      </Text>
+                    </View>
                   </View>
                   <TouchableOpacity style={styles.featAddBtn} onPress={() => handleAddToCart(featuredProduct)}>
                     {addingId === featuredProduct._id ? <ActivityIndicator color={C.primary} /> : <MaterialIcons name="add" size={28} color={C.primary} />}
@@ -226,7 +236,12 @@ const ProductListScreen = () => {
                     </View>
                     <View style={styles.subInfo}>
                       <Text style={styles.subName} numberOfLines={1}>{p.name}</Text>
-                      <Text style={styles.subPrice}>${Number(p.price || 0).toFixed(2)}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <Text style={[styles.subPrice, { marginBottom: 0 }]}>${Number(p.price || 0).toFixed(2)}</Text>
+                        <Text style={[styles.subStock, p.stock <= 0 && { color: C.error }]}>
+                          {p.stock > 0 ? `${p.stock} left` : 'Out of stock'}
+                        </Text>
+                      </View>
                       <TouchableOpacity style={styles.subQuickAdd} onPress={() => handleAddToCart(p)}>
                         <Text style={styles.subQuickAddText}>Quick Add</Text>
                         <MaterialIcons name="arrow-forward" size={14} color={C.secondary} />
@@ -381,6 +396,9 @@ const styles = StyleSheet.create({
   navIconActive: { marginBottom: 4 },
   navText: { fontSize: 9, fontWeight: '700', color: C.outline, textTransform: 'uppercase', letterSpacing: 1 },
   navTextActive: { fontSize: 9, fontWeight: '700', color: C.secondary, textTransform: 'uppercase', letterSpacing: 1 },
+  remStock: { fontSize: 11, fontWeight: '600', color: C.outlineVariant },
+  featStock: { fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.7)' },
+  subStock: { fontSize: 11, fontWeight: '600', color: C.outlineVariant },
 });
 
 export default ProductListScreen;

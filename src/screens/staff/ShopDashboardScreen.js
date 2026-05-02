@@ -124,6 +124,20 @@ const ShopDashboardScreen = () => {
           </View>
         </View>
 
+        {/* Order Items List */}
+        {item.items && item.items.length > 0 && (
+          <View style={styles.itemsList}>
+            {item.items.map((orderItem, idx) => (
+              <View key={idx} style={styles.itemRow}>
+                <Text style={styles.itemQuantity}>{orderItem.quantity}x</Text>
+                <Text style={styles.itemName} numberOfLines={1}>
+                  {orderItem.productId?.name || 'Unknown Item'}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Action */}
         {item.status === 'Pending' && (
           <View style={styles.cardFooter}>
@@ -275,6 +289,10 @@ const styles = StyleSheet.create({
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.surface, paddingBottom: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: C.onSurface, marginTop: 16 },
   emptySubtitle: { fontSize: 14, color: C.outline, marginTop: 6 },
+  itemsList: { paddingHorizontal: 16, paddingBottom: 12 },
+  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  itemQuantity: { fontSize: 13, fontWeight: '800', color: C.primary, width: 28 },
+  itemName: { fontSize: 13, color: C.onSurfaceVariant, flex: 1 },
 });
 
 export default ShopDashboardScreen;

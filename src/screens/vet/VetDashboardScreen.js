@@ -67,7 +67,7 @@ const VetDashboardScreen = () => {
   const renderBooking = ({ item }) => {
     const sc = STATUS_CONFIG[item.status] || STATUS_CONFIG.Pending;
     const dateStr = item.appointmentDate
-      ? new Date(item.appointmentDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      ? new Date(item.appointmentDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })
       : 'N/A';
     const petInitial = item.petId?.name?.charAt(0).toUpperCase() || '?';
 

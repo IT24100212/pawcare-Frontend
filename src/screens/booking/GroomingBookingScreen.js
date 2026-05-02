@@ -27,7 +27,11 @@ const getNext7Days = () => {
   for (let i = 1; i <= 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    days.push({ dayName: DAY_NAMES[d.getDay()], dateNum: d.getDate(), month: MONTH_NAMES[d.getMonth()], fullDate: d.toISOString().split('T')[0] });
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const fullDate = `${yyyy}-${mm}-${dd}`;
+    days.push({ dayName: DAY_NAMES[d.getDay()], dateNum: d.getDate(), month: MONTH_NAMES[d.getMonth()], fullDate });
   }
   return days;
 };

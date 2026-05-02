@@ -1,17 +1,17 @@
 import axiosInstance from './axiosInstance';
 
-export const getAvailableSlots = async (date) => {
-  const response = await axiosInstance.get(`/bookings/boarding/available?date=${date}`);
+export const getBoardingAvailability = async (startDate, endDate) => {
+  const response = await axiosInstance.get(`/bookings/boarding/available?startDate=${startDate}&endDate=${endDate}`);
   return response.data;
 };
 
-export const lockSlot = async (date, timeSlot) => {
-  const response = await axiosInstance.post('/bookings/boarding/lock', { date, timeSlot });
+export const getPetBookedDates = async (petId) => {
+  const response = await axiosInstance.get(`/bookings/boarding/pet-dates?petId=${petId}`);
   return response.data;
 };
 
-export const confirmBooking = async (bookingId, petId) => {
-  const response = await axiosInstance.post('/bookings/boarding/confirm', { bookingId, petId });
+export const createBoardingBooking = async (petId, boardingDates) => {
+  const response = await axiosInstance.post('/bookings/boarding/book', { petId, boardingDates });
   return response.data;
 };
 
