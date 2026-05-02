@@ -406,23 +406,25 @@ const AdminDashboardScreen = () => {
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabRow}>
-        {TABS.map(t => (
-          <TouchableOpacity
-            key={t}
-            style={[styles.tab, tab === t && styles.tabActive]}
-            onPress={() => setTab(t)}
-          >
-            <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
-              {t === 'Add Provider' ? '+ Provider' : t}
-            </Text>
-            {tabCounts[t] !== null && tabCounts[t] > 0 && (
-              <View style={[styles.tabBadge, tab === t && styles.tabBadgeActive]}>
-                <Text style={[styles.tabBadgeText, tab === t && { color: C.primary }]}>{tabCounts[t]}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+      <View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabRow}>
+          {TABS.map(t => (
+            <TouchableOpacity
+              key={t}
+              style={[styles.tab, tab === t && styles.tabActive]}
+              onPress={() => setTab(t)}
+            >
+              <Text style={[styles.tabText, tab === t && styles.tabTextActive]}>
+                {t === 'Add Provider' ? '+ Provider' : t}
+              </Text>
+              {tabCounts[t] !== null && tabCounts[t] > 0 && (
+                <View style={[styles.tabBadge, tab === t && styles.tabBadgeActive]}>
+                  <Text style={[styles.tabBadgeText, tab === t && { color: C.primary }]}>{tabCounts[t]}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Content */}
